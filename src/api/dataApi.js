@@ -1,15 +1,15 @@
 import axiosClient from "./axiosClient";
 
-const productApi = {
+const dataApi = {
   getAll: (params) => {
-    const url = '/products';
+    const url = '/datas';
     return axiosClient.get(url, { params });
   },
 
   get: (id) => {
-    const url = `/products/${id}`;
+    const url = `/datas/${id}`;
     return axiosClient.get(url);
   },
 }
 
-export default productApi;
+export default dataApi;
