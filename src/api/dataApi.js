@@ -1,15 +1,15 @@
 import axiosClient from "./axiosClient";
 
 const dataApi = {
-  getAll: (params) => {
-    const url = '/datas';
-    return axiosClient.get(url, { params });
-  },
+  getAll: () => {
+    const url = '/services';
+    // Example of sending a request body (you can modify this as per your need)
+    const requestBody = {
+      service: 'Manage',
+    };
 
-  get: (id) => {
-    const url = `/datas/${id}`;
-    return axiosClient.get(url);
+    return axiosClient.post(url, requestBody);
   },
-}
+};
 
 export default dataApi;
