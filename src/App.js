@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
@@ -15,11 +15,9 @@ import Geography from "./scenes/geography";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import dataApi from './api/dataApi';
-import { useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { getMe } from "./redux/actions/userActions";
+import { getMe } from './app/userSlice';
 import { unwrapResult } from "@reduxjs/toolkit";
-import firebase from 'firebase';
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -33,42 +31,33 @@ function App() {
         const params = {
           _page: 1,
           _limit: 10,
-
         };
         const response = await dataApi.getAll(params);
         console.log(response);
         setProductList(response.data);
       } catch (error) {
-        console.log('Failed to fetch product list: ', error);
+        console.log("Failed to fetch product list: ", error);
       }
-    }
+    };
 
     fetchProductList();
   }, []);
 
-  // Handle firebase auth changed
+  // Handle user session manually (if needed)
   useEffect(() => {
-    const unregisterAuthObserver = firebase.auth().onAuthStateChanged(async (user) => {
-      if (!user) {
-        // user logs out, handle something here
-        console.log('User is not logged in');
-        return;
-      }
-
-      // Get me when signed in
-      // const action = getMe();
+    const handleSession = async () => {
       try {
         const actionResult = await dispatch(getMe());
         const currentUser = unwrapResult(actionResult);
-        console.log('Logged in user: ', currentUser);
+        console.log("Logged in user: ", currentUser);
       } catch (error) {
-        console.log('Failed to login ', error.message);
-        // show toast error
+        console.log("Failed to retrieve user: ", error.message);
+        // Show toast or notification for the error
       }
-    });
+    };
 
-    return () => unregisterAuthObserver();
-  }, []);
+    handleSession();
+  }, [dispatch]);
 
   return (
     <ColorModeContext.Provider value={colorMode}>
