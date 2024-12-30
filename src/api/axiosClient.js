@@ -1,65 +1,46 @@
 import axios from 'axios';
-import queryString from 'query-string';
-import firebase from 'firebase';
 
-const getFirebaseToken = async () => {
-  const currentUser = firebase.auth().currentUser;
-  if (currentUser) return currentUser.getIdToken();
-
-  // Not logged in
-  const hasRememberedAccount = localStorage.getItem('firebaseui::rememberedAccounts');
-  if (!hasRememberedAccount) return null;
-
-  // Logged in but current user is not fetched --> wait (10s)
-  return new Promise((resolve, reject) => {
-    const waitTimer = setTimeout(() => {
-      reject(null);
-      console.log('Reject timeout');
-    }, 10000);
-
-    const unregisterAuthObserver = firebase.auth().onAuthStateChanged(async (user) => {
-      if (!user) {
-        reject(null);
-      }
-
-      const token = await user.getIdToken();
-      console.log('[AXIOS] Logged in user token: ', token);
-      resolve(token);
-
-      unregisterAuthObserver();
-      clearTimeout(waitTimer);
-    });
-  });
-}
-
-// Set up default config for http requests here
-// Please have a look at here `https://github.com/axios/axios#request- config` for the full list of configs
 const axiosClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: 'http://js-post-api.herokuapp.com/api',
   headers: {
-    'content-type': 'application/json',
+    'Content-Type': 'application/json',
   },
-  paramsSerializer: params => queryString.stringify(params),
 });
 
-axiosClient.interceptors.request.use(async (config) => {
-  const token = await getFirebaseToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Add a request interceptor
+axiosClient.interceptors.request.use(
+  function (config) {
+    // Add Authorization token if available
+    const token = localStorage.getItem('accessToken'); // Adjust storage mechanism if necessary
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  function (error) {
+    // Handle request error
+    console.error('Request error:', error);
+    return Promise.reject(error);
   }
+);
 
-  return config;
-});
-
-axiosClient.interceptors.response.use((response) => {
-  if (response && response.data) {
+// Add a response interceptor
+axiosClient.interceptors.response.use(
+  function (response) {
+    // Any status code within the range of 2xx triggers this function
+    // Return only response data
     return response.data;
+  },
+  function (error) {
+    // Handle response errors
+    console.error('Response error:', error.response || error.message);
+    if (error.response && error.response.status === 401) {
+      console.warn('Unauthorized! Handle token refresh or redirect to login.');
+      // Add token refresh or redirect logic here
+    }
+    return Promise.reject(error);
   }
-
-  return response;
-}, (error) => {
-  // Handle errors
-  throw error;
-});
+);
 
 export default axiosClient;

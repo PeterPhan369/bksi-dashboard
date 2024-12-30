@@ -1,25 +1,21 @@
-import firebase from 'firebase';
+import axiosClient from './axiosClient'; // Adjust the import path to your setup
 
 const userApi = {
   getMe: () => {
-    // TODO: Call API to get current user
+    // Call API to get the current user
     return new Promise((resolve, reject) => {
-      // reject(new Error('MY CUSTOM ERROR'));
-      // return;
-
-      // Wait 500ms --> return result
-      setTimeout(() => {
-        const currentUser = firebase.auth().currentUser;
-
-        resolve({
-          id: currentUser.uid,
-          name: currentUser.displayName,
-          email: currentUser.email,
-          photoUrl: currentUser.photoURL,
-        })
+      // Simulate API call
+      setTimeout(async () => {
+        try {
+          // Example API call to fetch current user info
+          const response = await axiosClient.get('/me'); // Replace '/me' with your actual endpoint
+          resolve(response);
+        } catch (error) {
+          reject(new Error('Failed to fetch user data.'));
+        }
       }, 500);
-    })
-  }
-}
+    });
+  },
+};
 
 export default userApi;
