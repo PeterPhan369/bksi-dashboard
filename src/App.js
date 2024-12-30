@@ -40,9 +40,7 @@ function App() {
     };
 
     fetchProductList();
-  }, []);
-
-  // Handle user session manually (if needed)
+  }, []); // Handle user session manually (if needed)
   useEffect(() => {
     const handleSession = async () => {
       try {

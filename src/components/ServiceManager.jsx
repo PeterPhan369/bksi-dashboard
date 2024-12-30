@@ -9,58 +9,91 @@ import {
   IconButton,
   Modal,
   TextField,
-  Grid2,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { v4 as uuidv4 } from 'uuid';
+import { mockDataTeam } from "../data/mockData";
 
-const ServiceManager = ({ initialServices, onServicesChange, themeColors }) => {
+const ServiceManager = ({ initialServices = mockDataTeam, onServicesChange, themeColors }) => {
   const [services, setServices] = useState(initialServices);
   const [openModal, setOpenModal] = useState(false);
-  const [editingData, setEditingData] = useState(null);
+  const [openInstanceModal, setOpenInstanceModal] = useState(false);
+  const [formData, setFormData] = useState({ Sname: "", id: "", host: "", port: "" });
+  const [currentServiceId, setCurrentServiceId] = useState(null);
 
-  const handleOpenModal = (data = null) => {
-    setEditingData(data);
+  const handleOpenModal = () => {
+    setFormData({ Sname: "" });
     setOpenModal(true);
+  };
+
+  const handleOpenInstanceModal = (serviceId) => {
+    setFormData({ id: "", host: "", port: "" });
+    setCurrentServiceId(serviceId);
+    setOpenInstanceModal(true);
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
-    setEditingData(null);
+    setFormData({ Sname: "" });
   };
 
-  const handleSave = (newData) => {
-    if (editingData) {
-      setServices((prevServices) =>
-        prevServices.map((service) =>
-          service.id === newData.id ? { ...service, ...newData } : service
-        )
-      );
-    } else {
-      setServices((prevServices) => [...prevServices, newData]);
+  const handleCloseInstanceModal = () => {
+    setOpenInstanceModal(false);
+    setFormData({ id: "", host: "", port: "" });
+    setCurrentServiceId(null);
+  };
+
+  const handleSaveService = () => {
+    if (formData.Sname.trim()) {
+      const newService = {
+        id: uuidv4(),
+        Sname: formData.Sname,
+        ServiceInstances: [],
+      };
+      const updatedServices = [...services, newService];
+      setServices(updatedServices);
+      mockDataTeam.push(newService);
+      if (onServicesChange) onServicesChange(updatedServices);
     }
-    onServicesChange(services);
     handleCloseModal();
   };
 
-  const handleDelete = (id, type = "service", parentId = null) => {
-    if (type === "service") {
-      setServices((prevServices) => prevServices.filter((service) => service.id !== id));
-    } else if (type === "entity" && parentId) {
-      setServices((prevServices) =>
-        prevServices.map((service) =>
-          service.id === parentId
-            ? {
-                ...service,
-                ServiceInstances: service.ServiceInstances.filter((instance) => instance.id !== id),
-              }
-            : service
-        )
+  const handleSaveInstance = () => {
+    if (currentServiceId && formData.id.trim() && formData.host.trim() && formData.port.trim()) {
+      const newInstance = {
+        id: formData.id,
+        host: formData.host,
+        port: formData.port,
+        status: true,
+      };
+      const updatedServices = services.map(service => 
+        service.id === currentServiceId
+          ? { ...service, ServiceInstances: [...service.ServiceInstances, newInstance] }
+          : service
       );
+      setServices(updatedServices);
+      const serviceIndex = mockDataTeam.findIndex(service => service.id === currentServiceId);
+      if (serviceIndex !== -1) {
+        mockDataTeam[serviceIndex].ServiceInstances.push(newInstance);
+      }
+      if (onServicesChange) onServicesChange(updatedServices);
     }
-    onServicesChange(services);
+    handleCloseInstanceModal();
+  };
+
+  const handleDelete = (id) => {
+    const updatedServices = services.filter(service => service.id !== id);
+    setServices(updatedServices);
+    const index = mockDataTeam.findIndex(service => service.id === id);
+    if (index !== -1) mockDataTeam.splice(index, 1);
+    if (onServicesChange) onServicesChange(updatedServices);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   return (
@@ -87,90 +120,101 @@ const ServiceManager = ({ initialServices, onServicesChange, themeColors }) => {
               <Box display="flex" justifyContent="space-between" width="100%">
                 <Typography variant="h6">{service.Sname}</Typography>
                 <Box>
-                  <IconButton onClick={() => handleOpenModal(service)}>
-                    <EditIcon />
+                  <IconButton onClick={() => handleOpenInstanceModal(service.id)}>
+                    <AddCircleIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDelete(service.id, "service")}>
+                  <IconButton onClick={() => handleDelete(service.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </Box>
               </Box>
             </AccordionSummary>
-            <AccordionDetails sx={{ backgroundColor: themeColors.primary[400] }}>
+            <AccordionDetails>
               {service.ServiceInstances.map((instance) => (
-                <Box
-                  key={instance.id}
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  p="10px"
-                  mb="10px"
-                  borderRadius="5px"
-                  backgroundColor={themeColors.grey[900]}
-                >
-                  <Box>
-                    <Typography variant="body1">
-                      <strong>ID:</strong> {instance.id}
-                    </Typography>
-                    <Typography variant="body1">
-                      <strong>Host:</strong> {instance.host}
-                    </Typography>
-                    <Typography variant="body1">
-                      <strong>Port:</strong> {instance.port}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <IconButton onClick={() => handleOpenModal(instance)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => handleDelete(instance.id, "entity", service.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
+                <Box key={instance.id} p={1}>
+                  <Typography variant="body1">ID: {instance.id}</Typography>
+                  <Typography variant="body1">Host: {instance.host}</Typography>
+                  <Typography variant="body1">Port: {instance.port}</Typography>
                 </Box>
               ))}
             </AccordionDetails>
           </Accordion>
         ))}
       </Box>
+      {/* Modal for Adding Service */}
       <Modal open={openModal} onClose={handleCloseModal}>
         <Box
           p={4}
           m="auto"
           mt="10%"
-          width="50%"
+          width="30%"
           bgcolor={themeColors.grey[800]}
           borderRadius="8px"
         >
-          <Typography variant="h6" mb={2}>
-            {editingData ? "Edit Service/Entity" : "Add Service"}
-          </Typography>
-          <Grid2 container spacing={2}>
-            <Grid2 item xs={12}>
-              <TextField
-                fullWidth
-                label="Service/Entity Name"
-                defaultValue={editingData?.Sname || editingData?.id || ""}
-              />
-            </Grid2>
-            <Grid2 item xs={6}>
-              <TextField fullWidth label="Host" defaultValue={editingData?.host || ""} />
-            </Grid2>
-            <Grid2 item xs={6}>
-              <TextField fullWidth label="Port" defaultValue={editingData?.port || ""} />
-            </Grid2>
-            <Grid2 item xs={12}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => handleSave(editingData || {})}
-              >
-                Save
-              </Button>
-            </Grid2>
-          </Grid2>
+          <Typography variant="h6" mb={2}>Add Service</Typography>
+          <TextField
+            fullWidth
+            label="Service Name"
+            name="Sname"
+            value={formData.Sname}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <Box mt={3} display="flex" justifyContent="flex-end">
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSaveService}
+            >
+              Save
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      {/* Modal for Adding Instance */}
+      <Modal open={openInstanceModal} onClose={handleCloseInstanceModal}>
+        <Box
+          p={4}
+          m="auto"
+          mt="10%"
+          width="30%"
+          bgcolor={themeColors.grey[800]}
+          borderRadius="8px"
+        >
+          <Typography variant="h6" mb={2}>Add Instance</Typography>
+          <TextField
+            fullWidth
+            label="ID"
+            name="id"
+            value={formData.id}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Host"
+            name="host"
+            value={formData.host}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Port"
+            name="port"
+            value={formData.port}
+            onChange={handleInputChange}
+            sx={{ mb: 2 }}
+          />
+          <Box mt={3} display="flex" justifyContent="flex-end">
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSaveInstance}
+            >
+              Save
+            </Button>
+          </Box>
         </Box>
       </Modal>
     </Box>

@@ -1,6 +1,6 @@
 import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
-import { mockTransactions, mockDataTeam } from "../../data/mockData";
+import { mockDataTeam } from "../../data/mockData";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import Header from "../../components/Header";
 import LineChart from "../../components/LineChart";
