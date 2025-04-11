@@ -64,11 +64,12 @@ const Dashboard = () => {
           </Box>
         </Box>
 
-        {/* ROW 3 */}
+        {/* ROW 3 - Increased height for ServiceManager */}
         <Box
           gridColumn="span 8"
-          gridRow="span 2"
+          gridRow="span 3" // Increased from 2 to 3 for more height
           backgroundColor={colors.primary[400]}
+          overflow="auto" // Add scrolling when content overflows
         >
           <Typography
             variant="h5"
@@ -78,11 +79,12 @@ const Dashboard = () => {
           >
             Manage Services
           </Typography>
-          <Box mt="20px" p="20px">
+          <Box mt="10px" p="20px" height="calc(100% - 60px)">
             <ServiceManager
               initialServices={mockDataTeam}
               onServicesChange={handleServicesChange}
               themeColors={colors}
+              compact={true} // Add a new prop for compact mode
             />
           </Box>
         </Box>

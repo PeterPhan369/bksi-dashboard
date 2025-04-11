@@ -1,0 +1,114 @@
+/* src/components/AIServicesList.css */
+.services-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .loading, .error {
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+  }
+  
+  .error {
+    color: #dc3545;
+  }
+  
+  .service-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    padding: 20px;
+  }
+  
+  .service-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  
+  .service-header h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .service-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .instances-container {
+    margin-top: 10px;
+  }
+  
+  .instances-container h4 {
+    margin-bottom: 10px;
+  }
+  
+  .instances-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .instances-table th,
+  .instances-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e2e2;
+  }
+  
+  .instances-table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+  }
+  
+  .delete-button, .delete-instance-button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .delete-button:hover, .delete-instance-button:hover {
+    background-color: #c82333;
+  }
+  
+  .add-instance-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .add-instance-button:hover {
+    background-color: #0069d9;
+  }
+  
+  select {
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  
+  .status-running {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .status-stopped {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  .status-error {
+    background-color: #f8d7da;
+    color: #721c24;
+  }

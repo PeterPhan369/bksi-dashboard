@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -6,148 +6,307 @@ import {
   AccordionSummary,
   AccordionDetails,
   Button,
-  Modal,
-  TextField,
+  Chip,
+  Paper,
+  Divider,
+  Tooltip,
+  CircularProgress,
+  Alert,
+  Snackbar
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import { v4 as uuidv4 } from "uuid";
-import MetricsDisplay from "./MetricsDisplay"; // Import component
-
-// Predefined Example Data
-const initialServices = [
-  {
-    id: uuidv4(),
-    Sname: "AI Model A",
-    metrics: {
-      cpu: "15%",
-      mem: "1.2 GB",
-      latency: "0.5ms",
-      accuracy: "98%",
-      availability: "99.9%",
-      throughput: "250 req/s",
-      errorRate: "1.5%",
-      driftDetection: "0.02",
-    },
-  },
-  {
-    id: uuidv4(),
-    Sname: "AI Model B",
-    metrics: {
-      cpu: "30%",
-      mem: "800 MB",
-      latency: "0.3ms",
-      accuracy: "95%",
-      availability: "99.8%",
-      throughput: "300 req/s",
-      errorRate: "0.5%",
-      driftDetection: "0.01",
-    },
-  },
-  {
-    id: uuidv4(),
-    Sname: "AI Model A",
-    metrics: {
-      cpu: "15%",
-      mem: "1.2 GB",
-      latency: "0.5ms",
-      accuracy: "98%",
-      availability: "99.9%",
-      throughput: "250 req/s",
-      errorRate: "1.5%",
-      driftDetection: "0.02",
-    },
-  },
-];
+import PolicyIcon from "@mui/icons-material/Policy";
+import StorageIcon from "@mui/icons-material/Storage";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import MetricsDisplay from "./MetricsDisplay";
+import AddServiceDialog from "./AddServiceDialog";
+import apiService from "../api/apiServices";
 
 const ServiceManager = () => {
-  const [services, setServices] = useState(initialServices); // Use initial data
-  const [openModal, setOpenModal] = useState(false);
-  const [formData, setFormData] = useState({ Sname: "" });
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
-  const handleOpenModal = () => {
-    setFormData({ Sname: "" });
-    setOpenModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-  };
-
-  const handleSaveService = () => {
-    if (formData.Sname.trim()) {
-      const newService = {
-        id: uuidv4(),
-        Sname: formData.Sname,
-        metrics: {
-          cpu: "0%",
-          mem: "0 MB",
-          latency: "0ms",
-          accuracy: "0%",
-          availability: "100%",
-          throughput: "0 req/s",
-          errorRate: "0%",
-          driftDetection: "None",
-        },
-      };
-      setServices([...services, newService]);
+  // Fetch services from the API
+  const fetchServices = async () => {
+    setLoading(true);
+    try {
+      const fetchedServices = await apiService.getServices();
+      setServices(fetchedServices);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load services. Please try again later.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    handleCloseModal();
+  };
+
+  // Initial data load
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const handleOpenDialog = (service = null) => {
+    setEditingService(service);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditingService(null);
+  };
+
+  const handleSaveService = async (serviceData) => {
+    try {
+      let savedService;
+      
+      if (editingService) {
+        // Update existing service
+        savedService = await apiService.updateService(editingService._id, serviceData);
+        setServices(services.map(s => 
+          s._id === savedService._id ? savedService : s
+        ));
+        setNotification({
+          open: true,
+          message: "Service updated successfully",
+          severity: "success"
+        });
+      } else {
+        // Create new service
+        savedService = await apiService.createService(serviceData);
+        setServices([...services, savedService]);
+        setNotification({
+          open: true,
+          message: "Service added successfully",
+          severity: "success"
+        });
+      }
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: `Error: ${err.response?.data?.error || "Failed to save service"}`,
+        severity: "error"
+      });
+    }
+  };
+
+  const handleDeleteService = async (id, event) => {
+    // Stop event propagation to prevent accordion from toggling
+    event.stopPropagation();
+    
+    if (window.confirm("Are you sure you want to delete this service?")) {
+      try {
+        await apiService.deleteService(id);
+        setServices(services.filter(service => service._id !== id));
+        setNotification({
+          open: true,
+          message: "Service deleted successfully",
+          severity: "success"
+        });
+      } catch (err) {
+        setNotification({
+          open: true,
+          message: "Failed to delete service",
+          severity: "error"
+        });
+      }
+    }
+  };
+
+  const handleEditService = (service, event) => {
+    // Stop event propagation to prevent accordion from toggling
+    event.stopPropagation();
+    handleOpenDialog(service);
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({
+      ...notification,
+      open: false
+    });
+  };
+
+  const getFrameworkColor = (framework) => {
+    const colors = {
+      tensorflow: "primary",
+      pytorch: "secondary",
+      keras: "success",
+      onnx: "info",
+      scikit: "warning",
+      huggingface: "error",
+      custom: "default"
+    };
+    return colors[framework] || "default";
+  };
+  
+  const getTypeIcon = (type) => {
+    if (type === "nlp") return <PolicyIcon fontSize="small" />;
+    return <StorageIcon fontSize="small" />;
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      active: "success",
+      inactive: "default",
+      error: "error",
+      maintenance: "warning"
+    };
+    return colors[status] || "default";
   };
 
   return (
     <Box>
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<AddCircleIcon />}
-        onClick={handleOpenModal}
-        sx={{ mb: 2 }}
-      >
-        Add Service
-      </Button>
-      <Box>
-        {services.map((service) => (
-          <Accordion key={service.id}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h6">{service.Sname}</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <MetricsDisplay metrics={service.metrics} />
-            </AccordionDetails>
-          </Accordion>
-        ))}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Typography variant="h5" component="h1">
+          AI Service Manager
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddCircleIcon />}
+          onClick={() => handleOpenDialog()}
+          size="large"
+        >
+          Add Service
+        </Button>
       </Box>
 
-      {/* Add Service Modal */}
-      <Modal open={openModal} onClose={handleCloseModal}>
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            bgcolor: "background.paper",
-            boxShadow: 24,
-            p: 4,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Add New Service
-          </Typography>
-          <TextField
-            fullWidth
-            label="Service Name"
-            value={formData.Sname}
-            onChange={(e) => setFormData({ Sname: e.target.value })}
-            sx={{ mb: 2 }}
-          />
-          <Button variant="contained" color="primary" onClick={handleSaveService}>
-            Save
-          </Button>
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
         </Box>
-      </Modal>
+      ) : error ? (
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+      ) : services.length === 0 ? (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          No services found. Click "Add Service" to create one.
+        </Alert>
+      ) : (
+        <Paper elevation={0} variant="outlined" sx={{ p: 0, mb: 4 }}>
+          {services.map((service, index) => (
+            <React.Fragment key={service._id}>
+              {index > 0 && <Divider />}
+              <Accordion disableGutters elevation={0}>
+                <AccordionSummary 
+                  expandIcon={<ExpandMoreIcon />}
+                  sx={{ 
+                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' },
+                    px: 2
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", width: '100%' }}>
+                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                      {service.Sname} <Typography component="span" variant="caption" color="text.secondary">v{service.version}</Typography>
+                    </Typography>
+                    
+                    <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
+                      <Tooltip title={`Status: ${service.status}`}>
+                        <Chip 
+                          label={service.status} 
+                          size="small" 
+                          color={getStatusColor(service.status)}
+                          sx={{ mr: 1 }}
+                        />
+                      </Tooltip>
+                      
+                      <Tooltip title={`Framework: ${service.framework}`}>
+                        <Chip 
+                          label={service.framework} 
+                          size="small" 
+                          color={getFrameworkColor(service.framework)}
+                          sx={{ mr: 1 }}
+                        />
+                      </Tooltip>
+                      
+                      <Tooltip title={`Type: ${service.type}`}>
+                        <Chip 
+                          icon={getTypeIcon(service.type)}
+                          label={service.type} 
+                          size="small"
+                          variant="outlined"
+                          sx={{ mr: 2 }}
+                        />
+                      </Tooltip>
+                      
+                      <Tooltip title="Edit Service">
+                        <Button
+                          size="small"
+                          color="primary"
+                          sx={{ minWidth: 'unset', mr: 1 }}
+                          onClick={(e) => handleEditService(service, e)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </Button>
+                      </Tooltip>
+                      
+                      <Tooltip title="Delete Service">
+                        <Button
+                          size="small"
+                          color="error"
+                          sx={{ minWidth: 'unset' }}
+                          onClick={(e) => handleDeleteService(service._id, e)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </Button>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </AccordionSummary>
+                
+                <AccordionDetails sx={{ px: 3, pb: 3, pt: 1 }}>
+                  {service.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {service.description}
+                    </Typography>
+                  )}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Created: {new Date(service.createdAt).toLocaleString()} • 
+                      Last Updated: {new Date(service.updatedAt).toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <MetricsDisplay metrics={service.metrics} />
+                </AccordionDetails>
+              </Accordion>
+            </React.Fragment>
+          ))}
+        </Paper>
+      )}
+
+      {/* Add/Edit Service Dialog */}
+      <AddServiceDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        onSave={handleSaveService}
+        service={editingService}
+      />
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
