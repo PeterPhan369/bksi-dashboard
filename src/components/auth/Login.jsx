@@ -63,8 +63,17 @@ const Login = () => {
     setLoginError('');
     
     try {
-      await login(formData);
-      navigate('/dashboard'); // Navigate to dashboard after successful login
+      // This line is key - we need to properly get and store the response
+      const response = await login(formData);
+      
+      // Make sure we're storing the token and user data from the response
+      if (response && response.token) {
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        navigate('/dashboard'); // Navigate to dashboard after successful login
+      } else {
+        throw new Error('Invalid login response - no token received');
+      }
     } catch (error) {
       setLoginError(error.message || 'Failed to login. Please check your credentials.');
     } finally {

@@ -10,7 +10,7 @@ export const login = async (credentials) => {
       localStorage.setItem('authToken', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
     }
-    return response.data;
+    return response.data; // Make sure we're returning the data!
   } catch (error) {
     console.error('Login error:', error);
     throw error.response?.data || { message: 'Failed to login. Please try again later.' };
@@ -38,7 +38,9 @@ export const getCurrentUser = () => {
 };
 
 export const isAuthenticated = () => {
-  return !!localStorage.getItem('authToken');
+  const token = localStorage.getItem('authToken');
+  const user = localStorage.getItem('user');
+  return !!token && !!user;
 };
 
 const authApi = {

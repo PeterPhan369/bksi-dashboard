@@ -1,12 +1,4 @@
 /* Auth.css */
-:root {
-    --primary-color: #6c5ce7;
-    --primary-light: #a29bfe;
-    --dark-color: #2d3436;
-    --light-color: #ffffff;
-    --gray-color: #b2bec3;
-    --form-bg: #ffffff;
-  }
   
   body {
     margin: 0;
@@ -144,10 +136,10 @@
   .login-button {
     width: 100%;
     padding: 15px;
-    border: none;
-    border-radius: 8px;
+    border: blueviolet;
+    border-radius: 10px;
     background-color: var(--primary-color);
-    color: white;
+    color: blueviolet;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -156,6 +148,7 @@
   
   .login-button:hover {
     background-color: #5549c0;
+    color: white;
   }
   
   .login-button:disabled {

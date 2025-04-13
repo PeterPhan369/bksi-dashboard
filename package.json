@@ -35,6 +35,7 @@
     "react-pro-sidebar": "^0.7.1",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.28.0",
+    "recharts": "^2.15.2",
     "uuid": "^11.1.0",
     "vite": "^6.2.2",
     "yup": "^1.5.0"

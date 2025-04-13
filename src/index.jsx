@@ -1,18 +1,25 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import "./index.css";
-import App from "./App";
-import { BrowserRouter } from "react-router-dom";
-import { Provider } from "react-redux"; // Import Provider from react-redux
-import store from "./app/store"; // Ensure this imports your Redux store correctly
+// src/index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import './index.css';
+import App from './App';
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+// Clear any potentially corrupted auth data on initial load
+const token = localStorage.getItem('authToken');
+const user = localStorage.getItem('user');
+
+// If auth data is incomplete, clear it
+if ((!token && user) || (token && !user)) {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('user');
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <Provider store={store}> {/* Wrap your App component with Provider */}
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </Provider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );

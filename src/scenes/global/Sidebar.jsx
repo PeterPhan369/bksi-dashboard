@@ -6,16 +6,18 @@ import "react-pro-sidebar/dist/css/styles.css";
 import { tokens } from "../../theme";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
-import ContactsOutlinedIcon from "@mui/icons-material/ContactsOutlined";
-import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined";
-import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
-import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+// import ContactsOutlinedIcon from "@mui/icons-material/ContactsOutlined"; // Not used currently
+// import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined"; // Not used currently
+// import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined"; // Not used currently
+// import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined"; // Not used currently
+// import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined"; // Not used currently
+import PollOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import PieChartOutlineOutlinedIcon from "@mui/icons-material/PieChartOutlineOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
-import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
+// import MapOutlinedIcon from "@mui/icons-material/MapOutlined"; // Not used currently
+import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
+import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined'; // <<< IMPORT API Key Icon
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
@@ -89,6 +91,7 @@ const Sidebar = () => {
             )}
           </MenuItem>
 
+          {/* USER PROFILE AREA */}
           {!isCollapsed && (
             <Box mb="25px">
               <Box display="flex" justifyContent="center" alignItems="center">
@@ -96,7 +99,8 @@ const Sidebar = () => {
                   alt="profile-user"
                   width="100px"
                   height="100px"
-                  src={`../../assets/user.png`}
+                  // Make sure the path to user.png is correct relative to your public folder or source structure
+                  src={`/assets/user.png`} // Assuming assets is in public folder, adjust if needed
                   style={{ cursor: "pointer", borderRadius: "50%" }}
                 />
               </Box>
@@ -116,6 +120,7 @@ const Sidebar = () => {
             </Box>
           )}
 
+          {/* MENU ITEMS */}
           <Box paddingLeft={isCollapsed ? undefined : "10%"}>
             <Item
               title="Dashboard"
@@ -134,54 +139,18 @@ const Sidebar = () => {
             </Typography>
             <Item
               title="Manage Service"
-              to="/team"
+              to="/team" // Keeping original "/team" as requested
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
-            {/* <Item
-              title="Contacts Information"
-              to="/contacts"
-              icon={<ContactsOutlinedIcon />}
+            <Item
+              title="Feedback Monitor"
+              to="/feedback" // Link to the route defined in App.jsx
+              icon={<FeedbackOutlinedIcon />} // Use the imported icon
               selected={selected}
               setSelected={setSelected}
             />
-            <Item
-              title="Invoices Balances"
-              to="/invoices"
-              icon={<ReceiptOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            /> */}
-
-            {/* <Typography
-              variant="h6"
-              color={colors.grey[300]}
-              sx={{ m: "15px 0 5px 20px" }}
-            >
-              Pages
-            </Typography>
-            <Item
-              title="Profile Form"
-              to="/form"
-              icon={<PersonOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="Calendar"
-              to="/calendar"
-              icon={<CalendarTodayOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <Item
-              title="FAQ Page"
-              to="/faq"
-              icon={<HelpOutlineOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            /> */}
 
             <Typography
               variant="h6"
@@ -190,13 +159,13 @@ const Sidebar = () => {
             >
               Charts
             </Typography>
-            {/* <Item
-              title="Bar Chart"
-              to="/bar"
-              icon={<BarChartOutlinedIcon />}
+            <Item
+              title="Service Ratings"
+              to="/service-ratings"
+              icon={<PollOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
-            /> */}
+            />
             <Item
               title="Pie Chart"
               to="/pie"
@@ -204,20 +173,31 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
-            {/* <Item
-              title="Line Chart"
-              to="/line"
+            <Item
+              title="Usage & Rejection"
+              to="/usage-rejection"
               icon={<TimelineOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
+
+            {/* --- NEW TOOLS SECTION --- */}
+            <Typography
+              variant="h6"
+              color={colors.grey[300]}
+              sx={{ m: "15px 0 5px 20px" }}
+            >
+              Tools
+            </Typography>
             <Item
-              title="Geography Chart"
-              to="/geography"
-              icon={<MapOutlinedIcon />}
+              title="API Key Generator" // Title for the new page
+              to="/api-key" // Route for the new page (ensure this matches your Router setup)
+              icon={<VpnKeyOutlinedIcon />} // Use the imported API key icon
               selected={selected}
               setSelected={setSelected}
-            /> */}
+            />
+            {/* --- END NEW TOOLS SECTION --- */}
+
           </Box>
         </Menu>
       </ProSidebar>
