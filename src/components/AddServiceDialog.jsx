@@ -15,32 +15,39 @@ import {
   Select,
   IconButton,
   Tooltip,
-  FormHelperText
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Divider
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 const AddServiceDialog = ({ open, onClose, onSave, service }) => {
   const isEditMode = !!service;
   
   const initialFormState = {
-    Sname: "",
-    type: "classification",
-    framework: "tensorflow",
-    version: "1.0",
-    description: "",
-    status: "inactive",
+    name: "",
+    hosts: ["127.0.0.1"],
+    ports: [9020],
+    replicas: 1,
     metrics: {
-      cpu: "0%",
-      mem: "0 MB",
-      latency: "0ms",
-      accuracy: "0%",
-      availability: "100%",
-      throughput: "0 req/s",
-      errorRate: "0%",
-      driftDetection: "0",
-    },
+      ai_request_total: false,
+      ai_request_latency_seconds: false,
+      model_inferences_total: false,
+      model_inference_errors_total: false,
+      model_response_time_seconds: false,
+      model_batch_size: false,
+      model_input_data_size_bytes: false,
+      model_output_data_size_bytes: false,
+      model_input_tokens_total: false,
+      model_output_tokens_total: false,
+      ai_model_accuracy: false,
+      ai_model_loss: false,
+      ai_memory_usage_bytes: false
+    }
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -50,22 +57,25 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
   useEffect(() => {
     if (service) {
       setFormData({
-        Sname: service.Sname || "",
-        type: service.type || "classification",
-        framework: service.framework || "tensorflow",
-        version: service.version || "1.0",
-        description: service.description || "",
-        status: service.status || "inactive",
+        name: service.name || "",
+        hosts: service.hosts || ["127.0.0.1"],
+        ports: service.ports || [9020],
+        replicas: service.hosts?.length || 1,
         metrics: {
-          cpu: service.metrics?.cpu || "0%",
-          mem: service.metrics?.mem || "0 MB",
-          latency: service.metrics?.latency || "0ms",
-          accuracy: service.metrics?.accuracy || "0%",
-          availability: service.metrics?.availability || "100%",
-          throughput: service.metrics?.throughput || "0 req/s",
-          errorRate: service.metrics?.errorRate || "0%",
-          driftDetection: service.metrics?.driftDetection || "0",
-        },
+          ai_request_total: service.metrics?.includes("ai_request_total") || false,
+          ai_request_latency_seconds: service.metrics?.includes("ai_request_latency_seconds") || false,
+          model_inferences_total: service.metrics?.includes("model_inferences_total") || false,
+          model_inference_errors_total: service.metrics?.includes("model_inference_errors_total") || false,
+          model_response_time_seconds: service.metrics?.includes("model_response_time_seconds") || false,
+          model_batch_size: service.metrics?.includes("model_batch_size") || false,
+          model_input_data_size_bytes: service.metrics?.includes("model_input_data_size_bytes") || false,
+          model_output_data_size_bytes: service.metrics?.includes("model_output_data_size_bytes") || false,
+          model_input_tokens_total: service.metrics?.includes("model_input_tokens_total") || false,
+          model_output_tokens_total: service.metrics?.includes("model_output_tokens_total") || false,
+          ai_model_accuracy: service.metrics?.includes("ai_model_accuracy") || false,
+          ai_model_loss: service.metrics?.includes("ai_model_loss") || false,
+          ai_memory_usage_bytes: service.metrics?.includes("ai_memory_usage_bytes") || false
+        }
       });
     } else {
       setFormData(initialFormState);
@@ -73,10 +83,41 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
     setErrors({});
   }, [service, open]);
 
+  // Ensure replicas always equals the number of host/port pairs
+  useEffect(() => {
+    if (formData.hosts.length !== formData.replicas) {
+      setFormData(prev => ({
+        ...prev,
+        replicas: formData.hosts.length
+      }));
+    }
+  }, [formData.hosts.length]);
+
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.Sname.trim()) newErrors.Sname = "Service name is required";
-    if (!formData.version.trim()) newErrors.version = "Version is required";
+    if (!formData.name.trim()) newErrors.name = "Service name is required";
+    
+    // Validate host entries
+    if (formData.hosts.length === 0) {
+      newErrors.hosts = "At least one host is required";
+    } else {
+      formData.hosts.forEach((host, index) => {
+        if (!host.trim()) {
+          newErrors[`hosts[${index}]`] = "Host cannot be empty";
+        }
+      });
+    }
+    
+    // Validate port entries
+    if (formData.ports.length === 0) {
+      newErrors.ports = "At least one port is required";
+    } else {
+      formData.ports.forEach((port, index) => {
+        if (!port || isNaN(port)) {
+          newErrors[`ports[${index}]`] = "Port must be a valid number";
+        }
+      });
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -84,53 +125,142 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  // Handle numeric fields (but replicas will be auto-calculated)
+  const handleNumericChange = (e) => {
+    const { name, value } = e.target;
+    // We're no longer allowing direct editing of replicas since it's now synced with host/port pairs
+    if (name !== 'replicas') {
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) || value === "") {
+        setFormData({
+          ...formData,
+          [name]: value === "" ? "" : numValue
+        });
+      }
+    }
+  };
+
+  // Handle checkbox changes for metrics
+  const handleMetricChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData({
+      ...formData,
+      metrics: {
+        ...formData.metrics,
+        [name]: checked
+      }
+    });
+  };
+
+  // Handle hosts array changes
+  const handleHostChange = (index, value) => {
+    const updatedHosts = [...formData.hosts];
+    updatedHosts[index] = value;
     
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
+    setFormData({
+      ...formData,
+      hosts: updatedHosts
+    });
+  };
+
+  // Handle ports array changes
+  const handlePortChange = (index, value) => {
+    const updatedPorts = [...formData.ports];
+    const numValue = parseInt(value, 10);
+    
+    if (!isNaN(numValue) || value === "") {
+      updatedPorts[index] = value === "" ? "" : numValue;
+      
       setFormData({
         ...formData,
-        [parent]: {
-          ...formData[parent],
-          [child]: value
-        }
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
+        ports: updatedPorts
       });
     }
   };
 
+  // Add new host/port pair and increment replicas
+  const addHostPortPair = () => {
+    const newReplicas = formData.hosts.length + 1;
+    setFormData({
+      ...formData,
+      hosts: [...formData.hosts, ""],
+      ports: [...formData.ports, ""],
+      replicas: newReplicas
+    });
+  };
+
+  // Remove a host/port pair and decrement replicas
+  const removeHostPortPair = (index) => {
+    if (formData.hosts.length <= 1) {
+      return; // Keep at least 1 pair
+    }
+    
+    const updatedHosts = formData.hosts.filter((_, i) => i !== index);
+    const updatedPorts = formData.ports.filter((_, i) => i !== index);
+    const newReplicas = updatedHosts.length;
+    
+    setFormData({
+      ...formData,
+      hosts: updatedHosts,
+      ports: updatedPorts,
+      replicas: newReplicas
+    });
+  };
+
   const handleSubmit = () => {
     if (validateForm()) {
-      // If editing, preserve the ID
-      const dataToSave = isEditMode ? { _id: service._id, ...formData } : formData;
+      // Prepare data for MongoDB based on your JSON structure
+      const selectedMetrics = [];
+      Object.entries(formData.metrics).forEach(([key, value]) => {
+        if (value) {
+          selectedMetrics.push(key);
+        }
+      });
+      
+      const dataToSave = {
+        ...(isEditMode ? { _id: service._id } : {}),
+        name: formData.name,
+        hosts: formData.hosts,
+        ports: formData.ports.map(port => parseInt(port, 10)),
+        replicas: formData.hosts.length, // Ensure replicas equals the number of host/port pairs
+        metrics: selectedMetrics
+      };
+      
+      // Send to parent component which will handle the API call
       onSave(dataToSave);
       onClose();
     }
   };
 
   const handleReset = () => {
-    if (isEditMode) {
-      // Reset to original service data
+    if (isEditMode && service) {
+      const hosts = service.hosts || ["127.0.0.1"];
       setFormData({
-        Sname: service.Sname || "",
-        type: service.type || "classification",
-        framework: service.framework || "tensorflow",
-        version: service.version || "1.0",
-        description: service.description || "",
-        status: service.status || "inactive",
+        name: service.name || "",
+        hosts: hosts,
+        ports: service.ports || [9020],
+        replicas: hosts.length, // Set replicas to match the number of hosts
         metrics: {
-          cpu: service.metrics?.cpu || "0%",
-          mem: service.metrics?.mem || "0 MB",
-          latency: service.metrics?.latency || "0ms",
-          accuracy: service.metrics?.accuracy || "0%",
-          availability: service.metrics?.availability || "100%",
-          throughput: service.metrics?.throughput || "0 req/s",
-          errorRate: service.metrics?.errorRate || "0%",
-          driftDetection: service.metrics?.driftDetection || "0",
-        },
+          ai_request_total: service.metrics?.includes("ai_request_total") || false,
+          ai_request_latency_seconds: service.metrics?.includes("ai_request_latency_seconds") || false,
+          model_inferences_total: service.metrics?.includes("model_inferences_total") || false,
+          model_inference_errors_total: service.metrics?.includes("model_inference_errors_total") || false,
+          model_response_time_seconds: service.metrics?.includes("model_response_time_seconds") || false,
+          model_batch_size: service.metrics?.includes("model_batch_size") || false,
+          model_input_data_size_bytes: service.metrics?.includes("model_input_data_size_bytes") || false,
+          model_output_data_size_bytes: service.metrics?.includes("model_output_data_size_bytes") || false,
+          model_input_tokens_total: service.metrics?.includes("model_input_tokens_total") || false,
+          model_output_tokens_total: service.metrics?.includes("model_output_tokens_total") || false,
+          ai_model_accuracy: service.metrics?.includes("ai_model_accuracy") || false,
+          ai_model_loss: service.metrics?.includes("ai_model_loss") || false,
+          ai_memory_usage_bytes: service.metrics?.includes("ai_memory_usage_bytes") || false
+        }
       });
     } else {
       // Reset to initial form state
@@ -138,33 +268,6 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
     }
     setErrors({});
   };
-
-  const aiModelTypes = [
-    { value: "classification", label: "Classification" },
-    { value: "detection", label: "Object Detection" },
-    { value: "segmentation", label: "Segmentation" },
-    { value: "nlp", label: "Natural Language Processing" },
-    { value: "generation", label: "Generative AI" },
-    { value: "recommendation", label: "Recommendation System" },
-    { value: "custom", label: "Custom Model" },
-  ];
-
-  const frameworks = [
-    { value: "tensorflow", label: "TensorFlow" },
-    { value: "pytorch", label: "PyTorch" },
-    { value: "keras", label: "Keras" },
-    { value: "onnx", label: "ONNX" },
-    { value: "scikit", label: "Scikit-Learn" },
-    { value: "huggingface", label: "Hugging Face" },
-    { value: "custom", label: "Custom Framework" },
-  ];
-
-  const statuses = [
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" },
-    { value: "error", label: "Error" },
-    { value: "maintenance", label: "Maintenance" },
-  ];
 
   return (
     <Dialog 
@@ -177,213 +280,282 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
         <Box display="flex" alignItems="center">
           {isEditMode ? <EditIcon sx={{ mr: 1 }} /> : <AddCircleIcon sx={{ mr: 1 }} />}
           <Typography variant="h6">
-            {isEditMode ? `Edit Service: ${service.Sname}` : "Add New AI Service"}
+            {isEditMode ? `Edit Service: ${service?.name}` : "Add New AI Service"}
           </Typography>
         </Box>
       </DialogTitle>
       
       <DialogContent dividers>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Service Name"
-              name="Sname"
-              value={formData.Sname}
+              name="name"
+              value={formData.name}
               onChange={handleChange}
-              error={!!errors.Sname}
-              helperText={errors.Sname}
+              error={!!errors.name}
+              helperText={errors.name}
               margin="normal"
               required
             />
           </Grid>
           
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Version"
-              name="version"
-              value={formData.version}
-              onChange={handleChange}
-              error={!!errors.version}
-              helperText={errors.version}
-              margin="normal"
-              required
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Model Type</InputLabel>
-              <Select
-                name="type"
-                value={formData.type}
-                label="Model Type"
-                onChange={handleChange}
-              >
-                {aiModelTypes.map((type) => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Framework</InputLabel>
-              <Select
-                name="framework"
-                value={formData.framework}
-                label="Framework"
-                onChange={handleChange}
-              >
-                {frameworks.map((framework) => (
-                  <MenuItem key={framework.value} value={framework.value}>
-                    {framework.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Status</InputLabel>
-              <Select
-                name="status"
-                value={formData.status}
-                label="Status"
-                onChange={handleChange}
-              >
-                {statuses.map((status) => (
-                  <MenuItem key={status.value} value={status.value}>
-                    {status.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          
+          {/* Replicas Field - Now read-only since it's auto-calculated */}
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              multiline
-              rows={3}
+              label="Replicas"
+              name="replicas"
+              type="number"
+              value={formData.replicas}
+              InputProps={{ 
+                readOnly: true,
+                inputProps: { min: 1 } 
+              }}
+              helperText="Replicas automatically matches the number of instances below"
               margin="normal"
+              required
             />
           </Grid>
           
+          {/* Host/Port Configuration Section */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center' }}>
-              Metrics
-              <Tooltip title="These values represent the current operational metrics for the service.">
+              Hosts and Ports Configuration
+              <Tooltip title="Enter host and port for each service instance">
                 <IconButton size="small">
                   <HelpOutlineIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Typography>
+            <Divider sx={{ mb: 2 }} />
           </Grid>
           
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="CPU Usage"
-              name="metrics.cpu"
-              value={formData.metrics.cpu}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
+          {formData.hosts.map((host, index) => (
+            <React.Fragment key={index}>
+              <Grid item xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label={`Host #${index + 1}`}
+                  value={host}
+                  onChange={(e) => handleHostChange(index, e.target.value)}
+                  error={!!errors[`hosts[${index}]`]}
+                  helperText={errors[`hosts[${index}]`]}
+                  margin="normal"
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <TextField
+                  fullWidth
+                  label={`Port #${index + 1}`}
+                  value={formData.ports[index]}
+                  onChange={(e) => handlePortChange(index, e.target.value)}
+                  error={!!errors[`ports[${index}]`]}
+                  helperText={errors[`ports[${index}]`]}
+                  margin="normal"
+                  type="number"
+                  InputProps={{ inputProps: { min: 1 } }}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconButton 
+                  color="error" 
+                  onClick={() => removeHostPortPair(index)}
+                  disabled={formData.hosts.length <= 1}
+                  sx={{ mt: 2 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Grid>
+            </React.Fragment>
+          ))}
+          
+          <Grid item xs={12}>
+            <Button
+              variant="outlined"
+              startIcon={<AddCircleIcon />}
+              onClick={addHostPortPair}
+              sx={{ mt: 1 }}
+            >
+              Add Instance
+            </Button>
           </Grid>
           
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Memory Usage"
-              name="metrics.mem"
-              value={formData.metrics.mem}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Latency"
-              name="metrics.latency"
-              value={formData.metrics.latency}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Accuracy"
-              name="metrics.accuracy"
-              value={formData.metrics.accuracy}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Availability"
-              name="metrics.availability"
-              value={formData.metrics.availability}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Throughput"
-              name="metrics.throughput"
-              value={formData.metrics.throughput}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Error Rate"
-              name="metrics.errorRate"
-              value={formData.metrics.errorRate}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              label="Drift Detection"
-              name="metrics.driftDetection"
-              value={formData.metrics.driftDetection}
-              onChange={handleChange}
-              size="small"
-              margin="dense"
-            />
+          {/* Metrics Selection Section */}
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
+              Metrics to Monitor
+              <Tooltip title="Select which metrics you want to monitor for this service">
+                <IconButton size="small">
+                  <HelpOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            
+            <FormGroup>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.ai_request_total} 
+                        onChange={handleMetricChange}
+                        name="ai_request_total"
+                      />
+                    }
+                    label="AI Request Total"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.ai_request_latency_seconds} 
+                        onChange={handleMetricChange}
+                        name="ai_request_latency_seconds"
+                      />
+                    }
+                    label="AI Request Latency (seconds)"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_inferences_total} 
+                        onChange={handleMetricChange}
+                        name="model_inferences_total"
+                      />
+                    }
+                    label="Model Inferences Total"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_inference_errors_total} 
+                        onChange={handleMetricChange}
+                        name="model_inference_errors_total"
+                      />
+                    }
+                    label="Model Inference Errors Total"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_response_time_seconds} 
+                        onChange={handleMetricChange}
+                        name="model_response_time_seconds"
+                      />
+                    }
+                    label="Model Response Time (seconds)"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_batch_size} 
+                        onChange={handleMetricChange}
+                        name="model_batch_size"
+                      />
+                    }
+                    label="Model Batch Size"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_input_data_size_bytes} 
+                        onChange={handleMetricChange}
+                        name="model_input_data_size_bytes"
+                      />
+                    }
+                    label="Input Data Size (bytes)"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_output_data_size_bytes} 
+                        onChange={handleMetricChange}
+                        name="model_output_data_size_bytes"
+                      />
+                    }
+                    label="Output Data Size (bytes)"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_input_tokens_total} 
+                        onChange={handleMetricChange}
+                        name="model_input_tokens_total"
+                      />
+                    }
+                    label="Input Tokens Total"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.model_output_tokens_total} 
+                        onChange={handleMetricChange}
+                        name="model_output_tokens_total"
+                      />
+                    }
+                    label="Output Tokens Total"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.ai_model_accuracy} 
+                        onChange={handleMetricChange}
+                        name="ai_model_accuracy"
+                      />
+                    }
+                    label="AI Model Accuracy"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.ai_model_loss} 
+                        onChange={handleMetricChange}
+                        name="ai_model_loss"
+                      />
+                    }
+                    label="AI Model Loss"
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={formData.metrics.ai_memory_usage_bytes} 
+                        onChange={handleMetricChange}
+                        name="ai_memory_usage_bytes"
+                      />
+                    }
+                    label="AI Memory Usage (bytes)"
+                  />
+                </Grid>
+              </Grid>
+            </FormGroup>
           </Grid>
         </Grid>
       </DialogContent>
