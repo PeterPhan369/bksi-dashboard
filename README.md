@@ -41,7 +41,6 @@ BKSI Dashboard is a full-stack web application designed to visualize user feedba
    Create a `.env` file in the project root with the following:
    ```env
    JWT_SECRET=your_jwt_secret
-   PORT=5000
    REACT_APP_API_URL=http://localhost:5000/api
    ```
 
@@ -91,7 +90,6 @@ This script will clear existing data and insert sample feedback, usage, and rati
 | Key                | Description                          |
 | ------------------ | ------------------------------------ |
 | `JWT_SECRET`       | Secret key for JWT token signing     |
-| `PORT`             | Backend server port (default: 5000)  |
 | `REACT_APP_API_URL`| Frontend API base URL                |
 
 ## Scripts
