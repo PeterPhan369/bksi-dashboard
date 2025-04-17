@@ -22,9 +22,7 @@ BKSI Dashboard is a full-stack web application designed to visualize user feedba
 
 ### Prerequisites
 
-- **Node.js** v20 or higher
 - **npm** v11 or higher
-- A running **MongoDB** instance (Atlas or local)
 
 ### Installation
 
