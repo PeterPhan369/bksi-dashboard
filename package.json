@@ -42,8 +42,8 @@
   },
   "scripts": {
     "start": "vite",
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "vite --host 0.0.0.0 --no-open",
+    "build": "vite build",
     "serve": "vite preview"
   },
   "eslintConfig": {

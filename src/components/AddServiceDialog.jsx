@@ -18,7 +18,9 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
-  Divider
+  Divider,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
@@ -27,6 +29,8 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 const AddServiceDialog = ({ open, onClose, onSave, service }) => {
   const isEditMode = !!service;
+  const [apiError, setApiError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const initialFormState = {
     name: "",
@@ -213,7 +217,35 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
     });
   };
 
-  const handleSubmit = () => {
+  // Post service data to API endpoint
+  const postServiceData = async (serviceData) => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('http://127.0.0.1:8120/route/managment/service', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(serviceData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error posting service data:', error);
+      setApiError(error.message || 'Failed to save service');
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (validateForm()) {
       // Prepare data for MongoDB based on your JSON structure
       const selectedMetrics = [];
@@ -232,9 +264,17 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
         metrics: selectedMetrics
       };
       
-      // Send to parent component which will handle the API call
-      onSave(dataToSave);
-      onClose();
+      try {
+        // Post to API endpoint
+        await postServiceData(dataToSave);
+        
+        // Then notify parent component
+        onSave(dataToSave);
+        onClose();
+      } catch (error) {
+        // Error is handled in postServiceData
+        // We don't close the dialog so user can correct any issues
+      }
     }
   };
 
@@ -269,314 +309,338 @@ const AddServiceDialog = ({ open, onClose, onSave, service }) => {
     setErrors({});
   };
 
+  // Close error notification
+  const handleCloseError = () => {
+    setApiError(null);
+  };
+
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle>
-        <Box display="flex" alignItems="center">
-          {isEditMode ? <EditIcon sx={{ mr: 1 }} /> : <AddCircleIcon sx={{ mr: 1 }} />}
-          <Typography variant="h6">
-            {isEditMode ? `Edit Service: ${service?.name}` : "Add New AI Service"}
-          </Typography>
-        </Box>
-      </DialogTitle>
-      
-      <DialogContent dividers>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Service Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              error={!!errors.name}
-              helperText={errors.name}
-              margin="normal"
-              required
-            />
-          </Grid>
-          
-          {/* Replicas Field - Now read-only since it's auto-calculated */}
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Replicas"
-              name="replicas"
-              type="number"
-              value={formData.replicas}
-              InputProps={{ 
-                readOnly: true,
-                inputProps: { min: 1 } 
-              }}
-              helperText="Replicas automatically matches the number of instances below"
-              margin="normal"
-              required
-            />
-          </Grid>
-          
-          {/* Host/Port Configuration Section */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center' }}>
-              Hosts and Ports Configuration
-              <Tooltip title="Enter host and port for each service instance">
-                <IconButton size="small">
-                  <HelpOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+    <>
+      <Dialog 
+        open={open} 
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center">
+            {isEditMode ? <EditIcon sx={{ mr: 1 }} /> : <AddCircleIcon sx={{ mr: 1 }} />}
+            <Typography variant="h6">
+              {isEditMode ? `Edit Service: ${service?.name}` : "Add New AI Service"}
             </Typography>
-            <Divider sx={{ mb: 2 }} />
-          </Grid>
-          
-          {formData.hosts.map((host, index) => (
-            <React.Fragment key={index}>
-              <Grid item xs={12} md={5}>
-                <TextField
-                  fullWidth
-                  label={`Host #${index + 1}`}
-                  value={host}
-                  onChange={(e) => handleHostChange(index, e.target.value)}
-                  error={!!errors[`hosts[${index}]`]}
-                  helperText={errors[`hosts[${index}]`]}
-                  margin="normal"
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} md={5}>
-                <TextField
-                  fullWidth
-                  label={`Port #${index + 1}`}
-                  value={formData.ports[index]}
-                  onChange={(e) => handlePortChange(index, e.target.value)}
-                  error={!!errors[`ports[${index}]`]}
-                  helperText={errors[`ports[${index}]`]}
-                  margin="normal"
-                  type="number"
-                  InputProps={{ inputProps: { min: 1 } }}
-                  required
-                />
-              </Grid>
-              <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconButton 
-                  color="error" 
-                  onClick={() => removeHostPortPair(index)}
-                  disabled={formData.hosts.length <= 1}
-                  sx={{ mt: 2 }}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Grid>
-            </React.Fragment>
-          ))}
-          
-          <Grid item xs={12}>
-            <Button
-              variant="outlined"
-              startIcon={<AddCircleIcon />}
-              onClick={addHostPortPair}
-              sx={{ mt: 1 }}
-            >
-              Add Instance
-            </Button>
-          </Grid>
-          
-          {/* Metrics Selection Section */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
-              Metrics to Monitor
-              <Tooltip title="Select which metrics you want to monitor for this service">
-                <IconButton size="small">
-                  <HelpOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent dividers>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Service Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                error={!!errors.name}
+                helperText={errors.name}
+                margin="normal"
+                required
+              />
+            </Grid>
             
-            <FormGroup>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.ai_request_total} 
-                        onChange={handleMetricChange}
-                        name="ai_request_total"
-                      />
-                    }
-                    label="AI Request Total"
+            {/* Replicas Field - Now read-only since it's auto-calculated */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Replicas"
+                name="replicas"
+                type="number"
+                value={formData.replicas}
+                InputProps={{ 
+                  readOnly: true,
+                  inputProps: { min: 1 } 
+                }}
+                helperText="Replicas automatically matches the number of instances below"
+                margin="normal"
+                required
+              />
+            </Grid>
+            
+            {/* Host/Port Configuration Section */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center' }}>
+                Hosts and Ports Configuration
+                <Tooltip title="Enter host and port for each service instance">
+                  <IconButton size="small">
+                    <HelpOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+            </Grid>
+            
+            {formData.hosts.map((host, index) => (
+              <React.Fragment key={index}>
+                <Grid item xs={12} md={5}>
+                  <TextField
+                    fullWidth
+                    label={`Host #${index + 1}`}
+                    value={host}
+                    onChange={(e) => handleHostChange(index, e.target.value)}
+                    error={!!errors[`hosts[${index}]`]}
+                    helperText={errors[`hosts[${index}]`]}
+                    margin="normal"
+                    required
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.ai_request_latency_seconds} 
-                        onChange={handleMetricChange}
-                        name="ai_request_latency_seconds"
-                      />
-                    }
-                    label="AI Request Latency (seconds)"
+                <Grid item xs={12} md={5}>
+                  <TextField
+                    fullWidth
+                    label={`Port #${index + 1}`}
+                    value={formData.ports[index]}
+                    onChange={(e) => handlePortChange(index, e.target.value)}
+                    error={!!errors[`ports[${index}]`]}
+                    helperText={errors[`ports[${index}]`]}
+                    margin="normal"
+                    type="number"
+                    InputProps={{ inputProps: { min: 1 } }}
+                    required
                   />
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_inferences_total} 
-                        onChange={handleMetricChange}
-                        name="model_inferences_total"
-                      />
-                    }
-                    label="Model Inferences Total"
-                  />
+                <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <IconButton 
+                    color="error" 
+                    onClick={() => removeHostPortPair(index)}
+                    disabled={formData.hosts.length <= 1}
+                    sx={{ mt: 2 }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_inference_errors_total} 
-                        onChange={handleMetricChange}
-                        name="model_inference_errors_total"
-                      />
-                    }
-                    label="Model Inference Errors Total"
-                  />
+              </React.Fragment>
+            ))}
+            
+            <Grid item xs={12}>
+              <Button
+                variant="outlined"
+                startIcon={<AddCircleIcon />}
+                onClick={addHostPortPair}
+                sx={{ mt: 1 }}
+              >
+                Add Instance
+              </Button>
+            </Grid>
+            
+            {/* Metrics Selection Section */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
+                Metrics to Monitor
+                <Tooltip title="Select which metrics you want to monitor for this service">
+                  <IconButton size="small">
+                    <HelpOutlineIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <FormGroup>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.ai_request_total} 
+                          onChange={handleMetricChange}
+                          name="ai_request_total"
+                        />
+                      }
+                      label="AI Request Total"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.ai_request_latency_seconds} 
+                          onChange={handleMetricChange}
+                          name="ai_request_latency_seconds"
+                        />
+                      }
+                      label="AI Request Latency (seconds)"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_inferences_total} 
+                          onChange={handleMetricChange}
+                          name="model_inferences_total"
+                        />
+                      }
+                      label="Model Inferences Total"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_inference_errors_total} 
+                          onChange={handleMetricChange}
+                          name="model_inference_errors_total"
+                        />
+                      }
+                      label="Model Inference Errors Total"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_response_time_seconds} 
+                          onChange={handleMetricChange}
+                          name="model_response_time_seconds"
+                        />
+                      }
+                      label="Model Response Time (seconds)"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_batch_size} 
+                          onChange={handleMetricChange}
+                          name="model_batch_size"
+                        />
+                      }
+                      label="Model Batch Size"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_input_data_size_bytes} 
+                          onChange={handleMetricChange}
+                          name="model_input_data_size_bytes"
+                        />
+                      }
+                      label="Input Data Size (bytes)"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_output_data_size_bytes} 
+                          onChange={handleMetricChange}
+                          name="model_output_data_size_bytes"
+                        />
+                      }
+                      label="Output Data Size (bytes)"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_input_tokens_total} 
+                          onChange={handleMetricChange}
+                          name="model_input_tokens_total"
+                        />
+                      }
+                      label="Input Tokens Total"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.model_output_tokens_total} 
+                          onChange={handleMetricChange}
+                          name="model_output_tokens_total"
+                        />
+                      }
+                      label="Output Tokens Total"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.ai_model_accuracy} 
+                          onChange={handleMetricChange}
+                          name="ai_model_accuracy"
+                        />
+                      }
+                      label="AI Model Accuracy"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.ai_model_loss} 
+                          onChange={handleMetricChange}
+                          name="ai_model_loss"
+                        />
+                      }
+                      label="AI Model Loss"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox 
+                          checked={formData.metrics.ai_memory_usage_bytes} 
+                          onChange={handleMetricChange}
+                          name="ai_memory_usage_bytes"
+                        />
+                      }
+                      label="AI Memory Usage (bytes)"
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_response_time_seconds} 
-                        onChange={handleMetricChange}
-                        name="model_response_time_seconds"
-                      />
-                    }
-                    label="Model Response Time (seconds)"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_batch_size} 
-                        onChange={handleMetricChange}
-                        name="model_batch_size"
-                      />
-                    }
-                    label="Model Batch Size"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_input_data_size_bytes} 
-                        onChange={handleMetricChange}
-                        name="model_input_data_size_bytes"
-                      />
-                    }
-                    label="Input Data Size (bytes)"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_output_data_size_bytes} 
-                        onChange={handleMetricChange}
-                        name="model_output_data_size_bytes"
-                      />
-                    }
-                    label="Output Data Size (bytes)"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_input_tokens_total} 
-                        onChange={handleMetricChange}
-                        name="model_input_tokens_total"
-                      />
-                    }
-                    label="Input Tokens Total"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.model_output_tokens_total} 
-                        onChange={handleMetricChange}
-                        name="model_output_tokens_total"
-                      />
-                    }
-                    label="Output Tokens Total"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.ai_model_accuracy} 
-                        onChange={handleMetricChange}
-                        name="ai_model_accuracy"
-                      />
-                    }
-                    label="AI Model Accuracy"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.ai_model_loss} 
-                        onChange={handleMetricChange}
-                        name="ai_model_loss"
-                      />
-                    }
-                    label="AI Model Loss"
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={formData.metrics.ai_memory_usage_bytes} 
-                        onChange={handleMetricChange}
-                        name="ai_memory_usage_bytes"
-                      />
-                    }
-                    label="AI Memory Usage (bytes)"
-                  />
-                </Grid>
-              </Grid>
-            </FormGroup>
+              </FormGroup>
+            </Grid>
           </Grid>
-        </Grid>
-      </DialogContent>
-      
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button onClick={handleReset} color="secondary">
-          Reset
-        </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          color="primary"
-          startIcon={isEditMode ? <EditIcon /> : <AddCircleIcon />}
-        >
-          {isEditMode ? "Update Service" : "Add Service"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </DialogContent>
+        
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleReset} color="secondary">
+            Reset
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            color="primary"
+            startIcon={isEditMode ? <EditIcon /> : <AddCircleIcon />}
+            disabled={isSubmitting}
+          >
+            {isSubmitting 
+              ? "Saving..." 
+              : isEditMode 
+                ? "Update Service" 
+                : "Add Service"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Error Notification */}
+      <Snackbar 
+        open={!!apiError} 
+        autoHideDuration={6000} 
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+          {apiError}
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 
