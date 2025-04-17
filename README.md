@@ -40,7 +40,6 @@ BKSI Dashboard is a full-stack web application designed to visualize user feedba
 3. **Configure environment variables**:
    Create a `.env` file in the project root with the following:
    ```env
-   MONGODB_URI=your_mongodb_uri
    JWT_SECRET=your_jwt_secret
    PORT=5000
    REACT_APP_API_URL=http://localhost:5000/api
@@ -91,7 +90,6 @@ This script will clear existing data and insert sample feedback, usage, and rati
 
 | Key                | Description                          |
 | ------------------ | ------------------------------------ |
-| `MONGODB_URI`      | MongoDB connection string (Atlas)    |
 | `JWT_SECRET`       | Secret key for JWT token signing     |
 | `PORT`             | Backend server port (default: 5000)  |
 | `REACT_APP_API_URL`| Frontend API base URL                |
