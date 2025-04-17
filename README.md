@@ -52,11 +52,6 @@ BKSI Dashboard is a full-stack web application designed to visualize user feedba
    ```bash
    # In the root directory
    npm run dev           # Starts frontend at http://localhost:3000
-   
-   # In a separate terminal, start the backend
-   cd server
-   npm run dev           # Uses nodemon to watch and restart
-   ```
 
 ## Folder Structure
 
@@ -111,8 +106,6 @@ This script will clear existing data and insert sample feedback, usage, and rati
 | `npm start`    | `vite`               | Alias for dev server                   |
 | `npm run build`| `vite build`         | Build production-ready frontend        |
 | `npm run serve`| `vite preview`       | Preview production build               |
-| *(server)*     |                      |                                        |
-| `npm run dev`  | `nodemon index.js`   | Start backend with auto-reload         |
 
 ## Contributing
 
