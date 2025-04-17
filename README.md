@@ -1,70 +1,128 @@
-# Getting Started with Create React App
+# BKSI Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Overview
 
-## Available Scripts
+BKSI Dashboard is a full-stack web application designed to visualize user feedback, usage metrics, and rating data in an intuitive and interactive interface. It integrates a React (Vite) frontend with a Node.js/Express backend and MongoDB database, offering real-time analytics and AI-powered insights.
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Interactive Charts**: Visualize data with Nivo (bar, pie, geo) and Recharts (line, area).
+- **FullCalendar Integration**: Display scheduled events and user engagements.
+- **Responsive UI**: Built with Material-UI (MUI) for a consistent and accessible design.
+- **User Authentication**: Secure login and token-based sessions using JWT and bcrypt.
+- **CRUD Operations**: Create, read, update, and delete feedback, usage, and rating entries.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Tech Stack
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Frontend**: React, Vite, Material-UI, Redux Toolkit, Formik, Yup
+- **Visualization**: @nivo, Recharts, @fullcalendar/react
+- **Dev Tools**: dotenv, concurrently, nodemon
 
-### `npm test`
+## Getting Started
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Prerequisites
 
-### `npm run build`
+- **Node.js** v20 or higher
+- **npm** v11 or higher
+- A running **MongoDB** instance (Atlas or local)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Installation
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/PeterPhan369/bksi-dashboard.git
+   cd bksi-dashboard
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+2. **Install dependencies**:
+   ```bash
+   npm install           # Installs frontend deps
+   ```
 
-### `npm run eject`
+3. **Configure environment variables**:
+   Create a `.env` file in the project root with the following:
+   ```env
+   MONGODB_URI=your_mongodb_uri
+   JWT_SECRET=your_jwt_secret
+   PORT=5000
+   REACT_APP_API_URL=http://localhost:5000/api
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+4. **Run the development servers**:
+   ```bash
+   # In the root directory
+   npm run dev           # Starts frontend at http://localhost:3000
+   
+   # In a separate terminal, start the backend
+   cd server
+   npm run dev           # Uses nodemon to watch and restart
+   ```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Folder Structure
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```
+/bksi-dashboard
+├── public/             # Static assets (favicon, manifest, logos)
+├── src/                # React frontend source
+│   ├── api/            # API client modules (axios)
+│   ├── components/     # Reusable React components
+│   ├── context/        # React context providers
+│   ├── data/           # Static data or config
+│   ├── scenes/         # Page-level components/routes
+│   ├── App.jsx         # App root component
+│   ├── index.jsx       # Frontend entry point
+│   └── theme.jsx       # MUI theme configuration
+├── .env                # Environment variables (not committed)
+├── .gitignore          # Excludes node_modules, logs, env files
+├── Dockerfile          # Containerization config
+├── vite.config.ts      # Vite build/server config
+└── package.json        # Project metadata and scripts
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## API Endpoints
 
-## Learn More
+| Method | Endpoint            | Description                       |
+| ------ | ------------------- | --------------------------------- |
+| POST   | `/api/auth`         | Authenticate user, receive token |
+| GET    | `/api/feedback`     | Retrieve all feedback entries    |
+| POST   | `/api/feedback`     | Submit new feedback              |
+| GET    | `/api/usage`        | Get usage metrics                |
+| GET    | `/api/rating`       | Fetch rating statistics          |
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+> **Note**: Protected routes require `Authorization: Bearer <token>` header.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
 
-### Code Splitting
+This script will clear existing data and insert sample feedback, usage, and ratings.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Environment Variables
 
-### Analyzing the Bundle Size
+| Key                | Description                          |
+| ------------------ | ------------------------------------ |
+| `MONGODB_URI`      | MongoDB connection string (Atlas)    |
+| `JWT_SECRET`       | Secret key for JWT token signing     |
+| `PORT`             | Backend server port (default: 5000)  |
+| `REACT_APP_API_URL`| Frontend API base URL                |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Scripts
 
-### Making a Progressive Web App
+| Script         | Command              | Description                            |
+| -------------- | -------------------- | -------------------------------------- |
+| `npm run dev`  | `vite`               | Start frontend in dev mode             |
+| `npm start`    | `vite`               | Alias for dev server                   |
+| `npm run build`| `vite build`         | Build production-ready frontend        |
+| `npm run serve`| `vite preview`       | Preview production build               |
+| *(server)*     |                      |                                        |
+| `npm run dev`  | `nodemon index.js`   | Start backend with auto-reload         |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Contributing
 
-### Advanced Configuration
+Contributions, issues, and feature requests are welcome! Feel free to open an issue or submit a pull request.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## License
 
-### Deployment
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Contact
 
-### `npm run build` fails to minify
+For questions or feedback, please open an issue or contact the maintainer.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
