@@ -1,0 +1,118 @@
+// Create this in a separate file (e.g., mockData.js)
+export const mockServices = [
+  {
+    _id: "svc_001",
+    Sname: "Sentiment Analysis",
+    version: "1.2.3",
+    status: "active",
+    framework: "tensorflow",
+    type: "nlp",
+    description: "Analyzes text to determine sentiment (positive, negative, neutral) with confidence scores.",
+    createdAt: "2025-01-15T09:30:00Z",
+    updatedAt: "2025-04-10T14:22:00Z",
+    metrics: {
+      requestCount: 15783,
+      averageLatency: 120,
+      errorRate: 0.02,
+      uptime: 99.8,
+      lastDeployed: "2025-03-28T10:15:00Z",
+      resourceUsage: {
+        cpu: 42,
+        memory: 68,
+        storage: 15
+      }
+    }
+  },
+  {
+    _id: "svc_002",
+    Sname: "Image Recognition",
+    version: "2.0.1",
+    status: "active",
+    framework: "pytorch",
+    type: "vision",
+    description: "Identifies objects in images with high accuracy using ResNet architecture.",
+    createdAt: "2024-12-05T11:20:00Z",
+    updatedAt: "2025-04-22T08:45:00Z",
+    metrics: {
+      requestCount: 27456,
+      averageLatency: 320,
+      errorRate: 0.015,
+      uptime: 99.9,
+      lastDeployed: "2025-04-15T09:00:00Z",
+      resourceUsage: {
+        cpu: 78,
+        memory: 82,
+        storage: 45
+      }
+    }
+  },
+  {
+    _id: "svc_003",
+    Sname: "Text Summarization",
+    version: "0.9.5",
+    status: "maintenance",
+    framework: "huggingface",
+    type: "nlp",
+    description: "Generates concise summaries of long-form text content while preserving key information.",
+    createdAt: "2025-02-18T15:40:00Z",
+    updatedAt: "2025-04-25T17:12:00Z",
+    metrics: {
+      requestCount: 8354,
+      averageLatency: 450,
+      errorRate: 0.035,
+      uptime: 97.2,
+      lastDeployed: "2025-04-01T16:30:00Z",
+      resourceUsage: {
+        cpu: 65,
+        memory: 74,
+        storage: 22
+      }
+    }
+  },
+  {
+    _id: "svc_004",
+    Sname: "Data Clustering Algorithm",
+    version: "1.4.0",
+    status: "inactive",
+    framework: "scikit",
+    type: "data",
+    description: "Performs unsupervised clustering on multi-dimensional data sets.",
+    createdAt: "2025-01-03T13:20:00Z",
+    updatedAt: "2025-03-10T09:17:00Z",
+    metrics: {
+      requestCount: 3421,
+      averageLatency: 180,
+      errorRate: 0.01,
+      uptime: 99.5,
+      lastDeployed: "2025-03-05T11:20:00Z",
+      resourceUsage: {
+        cpu: 35,
+        memory: 42,
+        storage: 12
+      }
+    }
+  },
+  {
+    _id: "svc_005",
+    Sname: "Translation API",
+    version: "2.1.7",
+    status: "error",
+    framework: "custom",
+    type: "nlp",
+    description: "Translates text between 28 different languages with contextual awareness.",
+    createdAt: "2024-11-22T10:10:00Z",
+    updatedAt: "2025-04-27T23:55:00Z",
+    metrics: {
+      requestCount: 43215,
+      averageLatency: 240,
+      errorRate: 3.85,
+      uptime: 82.4,
+      lastDeployed: "2025-04-15T08:30:00Z",
+      resourceUsage: {
+        cpu: 91,
+        memory: 88,
+        storage: 30
+      }
+    }
+  }
+];
