@@ -1,11 +1,10 @@
-// src/services/apiService.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:8081';
 
 export const getServices = async () => {
   try {
-    const response = await axios.get(`${API_URL}/services`);
+    const response = await axios.get(`${API_URL}/services`); // 🚫 this endpoint doesn't exist
     return response.data;
   } catch (error) {
     console.error('Error fetching services:', error);
@@ -15,7 +14,7 @@ export const getServices = async () => {
 
 export const addService = async (serviceData) => {
   try {
-    const response = await axios.post(`${API_URL}/services`, serviceData);
+    const response = await axios.post(`${API_URL}/service`, serviceData);
     return response.data;
   } catch (error) {
     console.error('Error adding service:', error);
@@ -23,9 +22,9 @@ export const addService = async (serviceData) => {
   }
 };
 
-export const deleteService = async (serviceId) => {
+export const deleteService = async (serviceName) => {
   try {
-    const response = await axios.delete(`${API_URL}/services/${serviceId}`);
+    const response = await axios.delete(`${API_URL}/service/${serviceName}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting service:', error);
@@ -33,9 +32,9 @@ export const deleteService = async (serviceId) => {
   }
 };
 
-export const deleteInstance = async (serviceId, instanceId) => {
+export const deleteInstance = async (instanceId) => {
   try {
-    const response = await axios.delete(`${API_URL}/services/${serviceId}/instances/${instanceId}`);
+    const response = await axios.delete(`${API_URL}/instance/${instanceId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting instance:', error);
@@ -43,19 +42,9 @@ export const deleteInstance = async (serviceId, instanceId) => {
   }
 };
 
-export const updateInstanceStatus = async (serviceId, instanceId, status) => {
+export const addInstance = async (instanceData) => {
   try {
-    const response = await axios.put(`${API_URL}/services/${serviceId}/instances/${instanceId}`, { status });
-    return response.data;
-  } catch (error) {
-    console.error('Error updating instance:', error);
-    throw new Error('Failed to update instance. Please try again later.');
-  }
-};
-
-export const addInstance = async (serviceId) => {
-  try {
-    const response = await axios.post(`${API_URL}/services/${serviceId}/instances`);
+    const response = await axios.post(`${API_URL}/instance`, instanceData);
     return response.data;
   } catch (error) {
     console.error('Error adding instance:', error);
@@ -68,7 +57,6 @@ const apiServices = {
   addService,
   deleteService,
   deleteInstance,
-  updateInstanceStatus,
   addInstance
 };
 
