@@ -260,5 +260,4 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
     </Dialog>
   );
 };
-
 export default AddServiceDialog;

@@ -22,7 +22,81 @@ import StorageIcon from "@mui/icons-material/Storage";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MetricsDisplay from "./MetricsDisplay";
 import AddServiceDialog from "./AddServiceDialog";
-import apiService from "../api/apiServices";
+
+// Short metric names
+const METRIC_LABELS = {
+  ai_request_total: "Req Total",
+  ai_request_latency_seconds: "Latency (s)",
+  model_inferences_total: "Inferences",
+  model_inference_errors_total: "Errors",
+  model_response_time_seconds: "Resp Time",
+  model_batch_size: "Batch",
+  model_input_data_size_bytes: "In Size",
+  model_output_data_size_bytes: "Out Size",
+  model_input_tokens_total: "In Tokens",
+  model_output_tokens_total: "Out Tokens",
+  ai_model_accuracy: "Accuracy",
+  ai_model_loss: "Loss",
+  ai_memory_usage_bytes: "Memory"
+};
+
+const DEFAULT_METRICS = [
+  "ai_request_total",
+  "ai_request_latency_seconds",
+  "model_inferences_total",
+  "ai_model_accuracy"
+];
+
+// Fake data
+const FAKE_SERVICES = [
+  {
+    _id: "1", Sname: "GPT-4", version: "1.2.0", framework: "tensorflow", type: "nlp", status: "active",
+    description: "Text classification service", createdAt: "2024-10-15T08:30:00.000Z",
+    updatedAt: "2025-04-20T11:45:00.000Z",
+    metrics: {
+      requestsPerDay: 12500, averageLatency: 78, errorRate: 0.5, uptime: 99.95,
+      ai_request_total: 10000, ai_request_latency_seconds: 0.2, model_inferences_total: 9500, ai_model_accuracy: 97.5
+    },
+    selectedMetrics: DEFAULT_METRICS
+  },
+  {
+    _id: "2", Sname: "GPT-3.5", version: "2.1.5", framework: "pytorch", type: "vision", status: "active",
+    description: "Image recognition service", createdAt: "2024-08-22T15:20:00.000Z",
+    updatedAt: "2025-05-02T09:10:00.000Z",
+    metrics: {
+      requestsPerDay: 8700, averageLatency: 120, errorRate: 1.2, uptime: 99.8,
+      ai_request_total: 9000, ai_request_latency_seconds: 0.25, model_inferences_total: 8700, ai_model_accuracy: 95.1
+    },
+    selectedMetrics: DEFAULT_METRICS
+  }
+];
+
+// Mock API
+const mockApiService = {
+  getServices: () => Promise.resolve(FAKE_SERVICES),
+  createService: (data) => {
+    const newService = {
+      _id: Math.random().toString(36).substr(2, 9),
+      Sname: data.name, version: data.version || "1.0.0",
+      framework: data.framework || "custom",
+      type: data.type || "nlp",
+      status: data.status || "active",
+      description: data.description || "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metrics: {},
+      selectedMetrics: data.selectedMetrics || DEFAULT_METRICS
+    };
+    return Promise.resolve(newService);
+  },
+  updateService: (id, data) => {
+    const updated = {
+      ...data, _id: id, updatedAt: new Date().toISOString()
+    };
+    return Promise.resolve(updated);
+  },
+  deleteService: (id) => Promise.resolve({ success: true })
+};
 
 const ServiceManager = () => {
   const [services, setServices] = useState([]);
