@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Button,
-  Chip,
-  Paper,
-  Divider,
-  Tooltip,
-  CircularProgress,
-  Alert,
-  Snackbar
+  Box, Typography, Accordion, AccordionSummary, AccordionDetails,
+  Button, Chip, Paper, Divider, Tooltip, CircularProgress,
+  Alert, Snackbar
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -22,290 +12,186 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import MetricsDisplay from "./MetricsDisplay";
 import AddServiceDialog from "./AddServiceDialog";
-import apiService from "../api/apiServices";
+
+// Short metric names
+const METRIC_LABELS = {
+  ai_request_total: "Req Total",
+  ai_request_latency_seconds: "Latency (s)",
+  model_inferences_total: "Inferences",
+  model_inference_errors_total: "Errors",
+  model_response_time_seconds: "Resp Time",
+  model_batch_size: "Batch",
+  model_input_data_size_bytes: "In Size",
+  model_output_data_size_bytes: "Out Size",
+  model_input_tokens_total: "In Tokens",
+  model_output_tokens_total: "Out Tokens",
+  ai_model_accuracy: "Accuracy",
+  ai_model_loss: "Loss",
+  ai_memory_usage_bytes: "Memory"
+};
+
+const DEFAULT_METRICS = [
+  "ai_request_total",
+  "ai_request_latency_seconds",
+  "model_inferences_total",
+  "ai_model_accuracy"
+];
+
+// Fake data
+const FAKE_SERVICES = [
+  {
+    _id: "1", Sname: "GPT-4", version: "1.2.0", framework: "tensorflow", type: "nlp", status: "active",
+    description: "Text classification service", createdAt: "2024-10-15T08:30:00.000Z",
+    updatedAt: "2025-04-20T11:45:00.000Z",
+    metrics: {
+      requestsPerDay: 12500, averageLatency: 78, errorRate: 0.5, uptime: 99.95,
+      ai_request_total: 10000, ai_request_latency_seconds: 0.2, model_inferences_total: 9500, ai_model_accuracy: 97.5
+    },
+    selectedMetrics: DEFAULT_METRICS
+  },
+  {
+    _id: "2", Sname: "GPT-3.5", version: "2.1.5", framework: "pytorch", type: "vision", status: "active",
+    description: "Image recognition service", createdAt: "2024-08-22T15:20:00.000Z",
+    updatedAt: "2025-05-02T09:10:00.000Z",
+    metrics: {
+      requestsPerDay: 8700, averageLatency: 120, errorRate: 1.2, uptime: 99.8,
+      ai_request_total: 9000, ai_request_latency_seconds: 0.25, model_inferences_total: 8700, ai_model_accuracy: 95.1
+    },
+    selectedMetrics: DEFAULT_METRICS
+  }
+];
+
+// Mock API
+const mockApiService = {
+  getServices: () => Promise.resolve(FAKE_SERVICES),
+  createService: (data) => {
+    const newService = {
+      _id: Math.random().toString(36).substr(2, 9),
+      Sname: data.name, version: data.version || "1.0.0",
+      framework: data.framework || "custom",
+      type: data.type || "nlp",
+      status: data.status || "active",
+      description: data.description || "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      metrics: {},
+      selectedMetrics: data.selectedMetrics || DEFAULT_METRICS
+    };
+    return Promise.resolve(newService);
+  },
+  updateService: (id, data) => {
+    const updated = {
+      ...data, _id: id, updatedAt: new Date().toISOString()
+    };
+    return Promise.resolve(updated);
+  },
+  deleteService: (id) => Promise.resolve({ success: true })
+};
 
 const ServiceManager = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editingService, setEditingService] = useState(null);
-  const [notification, setNotification] = useState({
-    open: false,
-    message: "",
-    severity: "success"
-  });
+  const [openDialog, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [notif, setNotif] = useState({ open: false, message: "", severity: "success" });
 
-  // Fetch services from the API
-  const fetchServices = async () => {
-    setLoading(true);
-    try {
-      const fetchedServices = await apiService.getServices();
-      setServices(fetchedServices);
-      setError(null);
-    } catch (err) {
-      setError("Failed to load services. Please try again later.");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initial data load
   useEffect(() => {
-    fetchServices();
+    mockApiService.getServices()
+      .then(setServices)
+      .catch(() => setError("Failed to load services"))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleOpenDialog = (service = null) => {
-    setEditingService(service);
-    setOpenDialog(true);
-  };
+  const openDialogFor = svc => { setEditing(svc); setOpen(true); };
+  const closeDialog = () => { setEditing(null); setOpen(false); };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setEditingService(null);
-  };
-
-  const handleSaveService = async (serviceData) => {
+  const handleSave = async data => {
     try {
-      let savedService;
-      
-      if (editingService) {
-        // Update existing service
-        savedService = await apiService.updateService(editingService._id, serviceData);
-        setServices(services.map(s => 
-          s._id === savedService._id ? savedService : s
-        ));
-        setNotification({
-          open: true,
-          message: "Service updated successfully",
-          severity: "success"
-        });
+      let saved;
+      if (editing) {
+        saved = await mockApiService.updateService(editing._id, data);
+        setServices(s => s.map(x => x._id === saved._id ? saved : x));
+        setNotif({ open: true, message: "Service updated", severity: "success" });
       } else {
-        // Create new service
-        savedService = await apiService.createService(serviceData);
-        setServices([...services, savedService]);
-        setNotification({
-          open: true,
-          message: "Service added successfully",
-          severity: "success"
-        });
+        saved = await mockApiService.createService(data);
+        setServices(s => [...s, saved]);
+        setNotif({ open: true, message: "Service added", severity: "success" });
       }
-    } catch (err) {
-      setNotification({
-        open: true,
-        message: `Error: ${err.response?.data?.error || "Failed to save service"}`,
-        severity: "error"
-      });
+    } catch {
+      setNotif({ open: true, message: "Error saving service", severity: "error" });
+    } finally {
+      closeDialog();
     }
   };
 
-  const handleDeleteService = async (id, event) => {
-    // Stop event propagation to prevent accordion from toggling
-    event.stopPropagation();
-    
-    if (window.confirm("Are you sure you want to delete this service?")) {
-      try {
-        await apiService.deleteService(id);
-        setServices(services.filter(service => service._id !== id));
-        setNotification({
-          open: true,
-          message: "Service deleted successfully",
-          severity: "success"
-        });
-      } catch (err) {
-        setNotification({
-          open: true,
-          message: "Failed to delete service",
-          severity: "error"
-        });
-      }
-    }
-  };
-
-  const handleEditService = (service, event) => {
-    // Stop event propagation to prevent accordion from toggling
-    event.stopPropagation();
-    handleOpenDialog(service);
-  };
-
-  const handleCloseNotification = () => {
-    setNotification({
-      ...notification,
-      open: false
+  const handleDelete = id => {
+    if (!window.confirm("Delete this service?")) return;
+    mockApiService.deleteService(id).then(() => {
+      setServices(s => s.filter(x => x._id !== id));
+      setNotif({ open: true, message: "Service deleted", severity: "info" });
     });
   };
 
-  const getFrameworkColor = (framework) => {
-    const colors = {
-      tensorflow: "primary",
-      pytorch: "secondary",
-      keras: "success",
-      onnx: "info",
-      scikit: "warning",
-      huggingface: "error",
-      custom: "default"
-    };
-    return colors[framework] || "default";
-  };
-  
-  const getTypeIcon = (type) => {
-    if (type === "nlp") return <PolicyIcon fontSize="small" />;
-    return <StorageIcon fontSize="small" />;
-  };
+  const getFrameworkColor = fw => ({ tensorflow: "primary", pytorch: "secondary", keras: "success" }[fw] || "default");
+  const getTypeIcon = t => (t === "nlp" ? <PolicyIcon /> : <StorageIcon />);
+  const getStatusColor = st => ({ active: "success", error: "error", maintenance: "warning" }[st] || "default");
 
-  const getStatusColor = (status) => {
-    const colors = {
-      active: "success",
-      inactive: "default",
-      error: "error",
-      maintenance: "warning"
-    };
-    return colors[status] || "default";
-  };
+  if (loading) return <Box sx={{ textAlign: "center", mt: 4 }}><CircularProgress /></Box>;
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" component="h1">
-          AI Service Manager
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddCircleIcon />}
-          onClick={() => handleOpenDialog()}
-          size="large"
-        >
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h5">AI Service Manager</Typography>
+        <Button variant="contained" startIcon={<AddCircleIcon />} onClick={() => openDialogFor(null)}>
           Add Service
         </Button>
       </Box>
 
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
-      ) : services.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          No services found. Click "Add Service" to create one.
-        </Alert>
-      ) : (
-        <Paper elevation={0} variant="outlined" sx={{ p: 0, mb: 4 }}>
-          {services.map((service, index) => (
-            <React.Fragment key={service._id}>
-              {index > 0 && <Divider />}
-              <Accordion disableGutters elevation={0}>
-                <AccordionSummary 
-                  expandIcon={<ExpandMoreIcon />}
-                  sx={{ 
-                    '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.04)' },
-                    px: 2
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", width: '100%' }}>
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                      {service.Sname} <Typography component="span" variant="caption" color="text.secondary">v{service.version}</Typography>
-                    </Typography>
-                    
-                    <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-                      <Tooltip title={`Status: ${service.status}`}>
-                        <Chip 
-                          label={service.status} 
-                          size="small" 
-                          color={getStatusColor(service.status)}
-                          sx={{ mr: 1 }}
-                        />
-                      </Tooltip>
-                      
-                      <Tooltip title={`Framework: ${service.framework}`}>
-                        <Chip 
-                          label={service.framework} 
-                          size="small" 
-                          color={getFrameworkColor(service.framework)}
-                          sx={{ mr: 1 }}
-                        />
-                      </Tooltip>
-                      
-                      <Tooltip title={`Type: ${service.type}`}>
-                        <Chip 
-                          icon={getTypeIcon(service.type)}
-                          label={service.type} 
-                          size="small"
-                          variant="outlined"
-                          sx={{ mr: 2 }}
-                        />
-                      </Tooltip>
-                      
-                      <Tooltip title="Edit Service">
-                        <Button
-                          size="small"
-                          color="primary"
-                          sx={{ minWidth: 'unset', mr: 1 }}
-                          onClick={(e) => handleEditService(service, e)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </Button>
-                      </Tooltip>
-                      
-                      <Tooltip title="Delete Service">
-                        <Button
-                          size="small"
-                          color="error"
-                          sx={{ minWidth: 'unset' }}
-                          onClick={(e) => handleDeleteService(service._id, e)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </Button>
-                      </Tooltip>
-                    </Box>
-                  </Box>
-                </AccordionSummary>
-                
-                <AccordionDetails sx={{ px: 3, pb: 3, pt: 1 }}>
-                  {service.description && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {service.description}
-                    </Typography>
-                  )}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Created: {new Date(service.createdAt).toLocaleString()} • 
-                      Last Updated: {new Date(service.updatedAt).toLocaleString()}
-                    </Typography>
-                  </Box>
-                  <MetricsDisplay metrics={service.metrics} />
-                </AccordionDetails>
-              </Accordion>
-            </React.Fragment>
-          ))}
-        </Paper>
-      )}
+      <Paper variant="outlined">
+        {services.length === 0 &&
+          <Alert severity="info">No services yet. Click “Add Service” to start.</Alert>}
+        {services.map((svc, i) => (
+          <React.Fragment key={svc._id}>
+            {i > 0 && <Divider />}
+            <Accordion disableGutters>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Box sx={{ display: "flex", alignItems: "center", width: "100%" }}>
+                  <Typography sx={{ flexGrow: 1 }}>
+                    {svc.Sname} <Typography component="span" variant="caption" color="text.secondary">v{svc.version}</Typography>
+                  </Typography>
+                  <Chip label={svc.status} size="small" color={getStatusColor(svc.status)} sx={{ mr: 1 }} />
+                  <Chip label={svc.framework} size="small" color={getFrameworkColor(svc.framework)} sx={{ mr: 1 }} />
+                  <Chip icon={getTypeIcon(svc.type)} label={svc.type} size="small" variant="outlined" sx={{ mr: 2 }} />
+                  <Tooltip title="Edit"><Button onClick={e => { e.stopPropagation(); openDialogFor(svc); }}><EditIcon /></Button></Tooltip>
+                  <Tooltip title="Delete"><Button color="error" onClick={e => { e.stopPropagation(); handleDelete(svc._id); }}><DeleteIcon /></Button></Tooltip>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{svc.description}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
+                  Created: {new Date(svc.createdAt).toLocaleString()} • Updated: {new Date(svc.updatedAt).toLocaleString()}
+                </Typography>
+                <MetricsDisplay metrics={svc.metrics} selected={svc.selectedMetrics} labels={METRIC_LABELS} />
+              </AccordionDetails>
+            </Accordion>
+          </React.Fragment>
+        ))}
+      </Paper>
 
-      {/* Add/Edit Service Dialog */}
       <AddServiceDialog
         open={openDialog}
-        onClose={handleCloseDialog}
-        onSave={handleSaveService}
-        service={editingService}
+        onClose={closeDialog}
+        onSave={handleSave}
+        service={editing}
+        allMetrics={Object.keys(METRIC_LABELS)}
+        defaultMetrics={DEFAULT_METRICS}
+        metricLabels={METRIC_LABELS}
       />
 
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={handleCloseNotification} 
-          severity={notification.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
+      <Snackbar open={notif.open} autoHideDuration={4000} onClose={() => setNotif(n => ({ ...n, open: false }))}>
+        <Alert severity={notif.severity} variant="filled">{notif.message}</Alert>
       </Snackbar>
     </Box>
   );

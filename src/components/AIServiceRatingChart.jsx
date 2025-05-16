@@ -1,52 +1,92 @@
 // src/components/AIServiceRatingChart.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Box, Typography, CircularProgress, Stack, Button } from '@mui/material';
-import { fetchRatings } from '../api/apiFeedback'; // Adjust the import path as needed
+import { Box, Typography, CircularProgress, Stack, Button, Snackbar, Alert } from '@mui/material';
+
+// Fake ratings data with neutral ratings included
+const FAKE_RATINGS_DATA = [
+  {
+    _id: "rat001",
+    name: "GPT",
+    thumb_up_rate: 67,
+    neutral_rate: 20,
+  },
+  {
+    _id: "rat002",
+    name: "Bard",
+    thumb_up_rate: 72,
+    neutral_rate: 20,
+  },
+  {
+    _id: "rat003", 
+    name: "Llama",
+    thumb_up_rate: 53,
+    neutral_rate: 20,
+  }
+];
 
 const AIServiceRatingChart = () => {
-  const [data, setData] = useState([]); // holds transformed rating data
+  const [data, setData] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
-  // Fetch ratings data on mount
+  // Load fake ratings data with a small delay to simulate API call
   useEffect(() => {
-    const getRatings = async () => {
-      try {
-        setLoading(true);
-        const resData = await fetchRatings();
-        // Defensive check: wrap in an array if not already one
-        const services = Array.isArray(resData) ? resData : [resData];
-        // Transform each service to include id, thumbUp, and thumbDown fields
-        const transformed = services.map(service => ({
-          _id: service._id, // for deletion
-          name: service.name,
-          thumbUp: Number(service.thumb_up_rate),
-          thumbDown: 100 - Number(service.thumb_up_rate)
-        }));
-        setData(transformed);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch service ratings');
-        setLoading(false);
-        console.error('Error fetching service ratings:', err);
-      }
+    const getFakeRatings = () => {
+      setTimeout(() => {
+        try {
+          // Transform each service to include id, thumbUp, neutral, and thumbDown fields
+          const transformed = FAKE_RATINGS_DATA.map(service => ({
+            _id: service._id,
+            name: service.name,
+            thumbUp: Number(service.thumb_up_rate),
+            neutral: Number(service.neutral_rate),
+            thumbDown: 100 - Number(service.thumb_up_rate) - Number(service.neutral_rate)
+          }));
+          setData(transformed);
+          setLoading(false);
+        } catch (err) {
+          setError('Failed to load service ratings');
+          setLoading(false);
+          console.error('Error loading service ratings:', err);
+        }
+      }, 800); // 800ms delay to simulate network request
     };
 
-    getRatings();
+    getFakeRatings();
   }, []);
 
-  // Delete handler for a given service id using absolute URL
+  // Delete handler for a given service id
   const handleDelete = async (id) => {
     try {
-      // Using the absolute URL to directly target the Express backend
-      await axios.delete(`http://localhost:5000/api/ratings/${id}`);
-      // Update local state by filtering out the deleted service
+      // No actual API call, just update the local state
       setData(prevData => prevData.filter(service => service._id !== id));
+      
+      // Show success notification
+      setNotification({
+        open: true,
+        message: "Service rating deleted successfully",
+        severity: "success"
+      });
     } catch (err) {
       console.error(`Error deleting service with id ${id}:`, err);
-      setError('Failed to delete service');
+      setNotification({
+        open: true,
+        message: "Failed to delete service rating",
+        severity: "error"
+      });
     }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({
+      ...notification,
+      open: false
+    });
   };
 
   if (loading) {
@@ -70,43 +110,78 @@ const AIServiceRatingChart = () => {
       <Typography variant="h5" sx={{ mb: 2, textAlign: 'center' }}>
         AI Service Rating Distribution
       </Typography>
-      {data.map((service) => (
-        <Box key={service._id} sx={{ mb: 3, p: 1, border: '1px solid #ccc', borderRadius: 1 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-            <Typography variant="subtitle1">{service.name}</Typography>
-            <Button 
-              variant="contained" 
-              color="error" 
-              size="small" 
-              onClick={() => handleDelete(service._id)}
-            >
-              Delete
-            </Button>
-          </Stack>
-          <Stack direction="row" spacing={0} sx={{ height: 24, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
-            <Box
-              sx={{
-                width: `${service.thumbUp}%`,
-                bgcolor: '#4caf50'
-              }}
-            />
-            <Box
-              sx={{
-                width: `${service.thumbDown}%`,
-                bgcolor: '#f44336'
-              }}
-            />
-          </Stack>
-          <Stack direction="row" justifyContent="space-between" mt={0.5}>
-            <Typography variant="caption" sx={{ color: '#4caf50' }}>
-              👍 {service.thumbUp}%
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#f44336' }}>
-              👎 {service.thumbDown}%
-            </Typography>
-          </Stack>
+      
+      {data.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography color="text.secondary">No service ratings available</Typography>
         </Box>
-      ))}
+      ) : (
+        data.map((service) => (
+          <Box key={service._id} sx={{ mb: 3, p: 2, border: '1px solid #ccc', borderRadius: 1, bgcolor: 'background.paper' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>{service.name}</Typography>
+              <Button 
+                variant="contained" 
+                color="error" 
+                size="small" 
+                onClick={() => handleDelete(service._id)}
+              >
+                Delete
+              </Button>
+            </Stack>
+            <Stack direction="row" spacing={0} sx={{ height: 24, width: '100%', borderRadius: 1, overflow: 'hidden' }}>
+              <Box
+                sx={{
+                  width: `${service.thumbUp}%`,
+                  bgcolor: '#4caf50',
+                  transition: 'width 0.5s ease-in-out'
+                }}
+              />
+              <Box
+                sx={{
+                  width: `${service.neutral}%`,
+                  bgcolor: '#ffb74d',
+                  transition: 'width 0.5s ease-in-out'
+                }}
+              />
+              <Box
+                sx={{
+                  width: `${service.thumbDown}%`,
+                  bgcolor: '#f44336',
+                  transition: 'width 0.5s ease-in-out'
+                }}
+              />
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" mt={0.5}>
+              <Typography variant="caption" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                👍 {service.thumbUp}%
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#ffb74d', fontWeight: 'bold', textAlign: 'center', flex: 1 }}>
+                😐 {service.neutral}%
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#f44336', fontWeight: 'bold' }}>
+                👎 {service.thumbDown}%
+              </Typography>
+            </Stack>
+          </Box>
+        ))
+      )}
+      
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

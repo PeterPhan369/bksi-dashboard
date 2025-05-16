@@ -1,4 +1,3 @@
-// src/components/ApiKeyGeneratorPage.jsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -16,9 +15,6 @@ import {
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 
-// --- Import the API service function ---
-import { generateApiKey } from '../api/apiKey'; // Adjust path as needed
-
 const ApiKeyGeneratorPage = () => {
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,40 +24,48 @@ const ApiKeyGeneratorPage = () => {
     severity: 'info',
   });
 
-  // --- Updated handler using the service ---
+  // --- Inline fake API key generator ---
+  const fakeGenerateApiKey = () => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        // 10% chance to error
+        if (Math.random() < 0.1) {
+          return reject(new Error('Service temporarily unavailable. Please try again.'));
+        }
+        // generate 32-char hex string
+        const key = Array.from({ length: 32 }, () =>
+          Math.floor(Math.random() * 16).toString(16)
+        ).join('');
+        resolve(key);
+      }, 1200);
+    });
+  };
+
   const handleGenerateKey = async () => {
     setLoading(true);
     setApiKey('');
 
     try {
-      // Call the separated API service function
-      const fetchedKey = await generateApiKey();
-
-      // Update state on success
+      const fetchedKey = await fakeGenerateApiKey();
       setApiKey(fetchedKey);
       setNotification({
         open: true,
         message: 'New API Key generated successfully!',
         severity: 'success',
       });
-
     } catch (error) {
-      // Handle errors thrown by the service function
       console.error('Failed to fetch API Key:', error);
       setNotification({
         open: true,
-        // Use the error message provided by the service function
         message: error.message || 'Failed to generate API Key.',
         severity: 'error',
       });
-      setApiKey(''); // Ensure key is cleared on error
-
+      setApiKey('');
     } finally {
-      setLoading(false); // Stop loading regardless of outcome
+      setLoading(false);
     }
   };
 
-  // --- Copy key function remains the same ---
   const handleCopyKey = async () => {
     if (!apiKey) {
       setNotification({ open: true, message: 'Generate an API Key first!', severity: 'warning' });
@@ -76,13 +80,11 @@ const ApiKeyGeneratorPage = () => {
     }
   };
 
-  // --- Close notification function remains the same ---
   const handleCloseNotification = (event, reason) => {
     if (reason === 'clickaway') return;
     setNotification({ ...notification, open: false });
   };
 
-  // --- JSX Rendering part remains the same ---
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -90,7 +92,7 @@ const ApiKeyGeneratorPage = () => {
           API Key Generator
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Generate a unique API key from the server to authenticate your requests.
+          Generate a unique API key locally without hitting a real backend.
         </Typography>
 
         <Button

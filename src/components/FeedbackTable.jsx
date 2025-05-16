@@ -41,22 +41,26 @@ const FeedbackTable = ({ feedbackData, currentPage, itemsPerPage }) => {
               },
             }}>
               <TableCell sx={{ width: '5%' }}>No.</TableCell>
-              <TableCell sx={{ width: '30%' }}>Initial Message</TableCell>
-              <TableCell sx={{ width: '20%' }}>AI Token</TableCell>
-              <TableCell sx={{ width: '45%' }}>User Feedback</TableCell> {/* New Column */}
+              <TableCell sx={{ width: '20%' }}>Service Name</TableCell>
+              <TableCell sx={{ width: '25%' }}>Date and Time</TableCell>
+              <TableCell sx={{ width: '25%' }}>Suggestions</TableCell>
+              <TableCell sx={{ width: '25%' }}>User Feedback</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {feedbackData.map((row, index) => (
+            {feedbackData
+              .slice(startIndex, startIndex + itemsPerPage)
+              .map((row, index) => (
               <TableRow
-                key={row._id || row.id || index}
+                key={row.id || index}
                 hover
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
                 <TableCell>{startIndex + index + 1}</TableCell>
-                <TableCell>{row.initial}</TableCell>
-                <TableCell>{row.tokenized}</TableCell>
-                <TableCell>{row.userfeedback || '-'}</TableCell> {/* Display userfeedback */}
+                <TableCell>{row.serviceName}</TableCell>
+                <TableCell>{row.dateTime}</TableCell>
+                <TableCell>{row.suggestions}</TableCell>
+                <TableCell>{row.userfeedback || '-'}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -69,11 +73,11 @@ const FeedbackTable = ({ feedbackData, currentPage, itemsPerPage }) => {
 FeedbackTable.propTypes = {
   feedbackData: PropTypes.arrayOf(
     PropTypes.shape({
-      _id: PropTypes.string,
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      initial: PropTypes.string.isRequired,
-      tokenized: PropTypes.string.isRequired,
-      userfeedback: PropTypes.string, // Added field
+      serviceName: PropTypes.string.isRequired,
+      dateTime: PropTypes.string.isRequired,
+      suggestions: PropTypes.string.isRequired,
+      userfeedback: PropTypes.string,
     })
   ),
   currentPage: PropTypes.number,

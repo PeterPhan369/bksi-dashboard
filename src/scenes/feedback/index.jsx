@@ -1,119 +1,65 @@
 // src/scenes/feedback/index.jsx
-
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, useTheme, CircularProgress, Pagination } from '@mui/material'; // <<< Import Pagination
+import React, { useState } from 'react';
+import { Box, useTheme, Pagination } from '@mui/material';
 import Header from '../../components/Header';
 import FeedbackTable from '../../components/FeedbackTable';
 import { tokens } from '../../theme';
+
+// --- Fake data: tokenized Vietnamese student questions with popular LLM names ---
+const fakeFeedbackData = [
+  { id: 1, serviceName: 'GPT-4',           dateTime: '2025-05-12 09:15', suggestions: 'làm thế nào để nộp bài tập ?',                           userfeedback: 'Tốt' },
+  { id: 2, serviceName: 'GPT-3.5',         dateTime: '2025-05-12 11:42', suggestions: 'bao lâu thì bài kiểm tra được trả ?',                     userfeedback: 'Tốt' },
+  { id: 3, serviceName: 'Bard',            dateTime: '2025-05-13 08:03', suggestions: 'tôi cần tài liệu bổ sung về chủ đề hóa học hữu cơ .',       userfeedback: 'Tốt' },
+  { id: 4, serviceName: 'Claude 2',         dateTime: '2025-05-13 10:27', suggestions: 'lịch học thêm vào thứ bảy là gì ?',                      userfeedback: '-' },
+  { id: 5, serviceName: 'Llama 2',         dateTime: '2025-05-13 14:53', suggestions: 'giờ phát biểu bài thuyết trình của tôi khi nào ?',         userfeedback: 'Tệ' },
+  { id: 6, serviceName: 'Mistral',         dateTime: '2025-05-14 09:00', suggestions: 'cách truy cập thư viện trực tuyến như thế nào ?',        userfeedback: 'Tệ' },
+  { id: 7, serviceName: 'Gemini',          dateTime: '2025-05-14 12:30', suggestions: 'làm sao để đăng ký câu lạc bộ bóng đá ?',                 userfeedback: '-' },
+  { id: 8, serviceName: 'PaLM 2',          dateTime: '2025-05-14 15:45', suggestions: 'tôi quên mật khẩu tài khoản sinh viên .',                  userfeedback: 'Tốt' },
+  { id: 9, serviceName: 'Cohere Command',  dateTime: '2025-05-15 08:20', suggestions: 'điều kiện tham gia chương trình trao đổi sinh viên là gì ?', userfeedback: 'Tệ' },
+  { id: 10, serviceName: 'Jurassic-2',     dateTime: '2025-05-15 11:10', suggestions: 'giáo án tuần sau có thay đổi không ?',                    userfeedback: 'Tệ' },
+  { id: 11, serviceName: 'OPT',            dateTime: '2025-05-15 13:55', suggestions: 'tôi có thể xem lại điểm kiểm tra trực tuyến ở đâu ?',      userfeedback: '-' },
+];
 
 const FeedbackScene = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  // --- State ---
-  const [feedbackData, setFeedbackData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1); // <<< State for current page
-  const [totalPages, setTotalPages] = useState(0);   // <<< State for total pages
-  const itemsPerPage = 10;                           // <<< Items per page limit
+  // --- Pagination state ---
+  const itemsPerPage = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(fakeFeedbackData.length / itemsPerPage);
 
-  // --- Data Fetching ---
-  // Updated to accept page number
-  const fetchFeedback = async (page = 1) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000'; // Ensure port is 5000
-      // Add page and limit query parameters to the fetch URL
-      const response = await fetch(`${apiUrl}/api/feedback?page=${page}&limit=${itemsPerPage}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success && Array.isArray(result.data)) {
-        setFeedbackData(result.data);
-        // Set pagination state from the response
-        setTotalPages(result.pagination.totalPages);
-        setCurrentPage(result.pagination.currentPage); // Ensure state syncs with response
-      } else {
-        throw new Error('Failed to fetch feedback data or invalid format received.');
-      }
-    } catch (err) {
-      console.error("Error fetching feedback:", err);
-      setError(err.message || 'Failed to load feedback data.');
-      setFeedbackData([]); // Clear data on error
-      setTotalPages(0); // Reset pages on error
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // --- useEffect Hook ---
-  // Fetch data for the initial page (page 1) when the component mounts
-  useEffect(() => {
-    fetchFeedback(1);
-  }, []); // Empty dependency array means this runs only once on mount
-
-  // --- Pagination Handler ---
+  // --- Page change handler ---
   const handlePageChange = (event, value) => {
-    // 'value' is the new page number selected by the user
-    fetchFeedback(value); // Fetch data for the new page
-    // setCurrentPage(value); // Optional: Update state immediately, or rely on fetchFeedback response
+    setCurrentPage(value);
   };
-
-  // --- Render Logic ---
-  let content;
-  if (isLoading) {
-    content = (
-      <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
-        <CircularProgress />
-      </Box>
-    );
-  } else if (error) {
-    content = (
-      <Typography color="error" sx={{ mt: 2 }}>
-        Error loading data: {error}
-      </Typography>
-    );
-  } else {
-    // Render the table with data for the current page
-    content = (
-        <FeedbackTable
-            feedbackData={feedbackData}
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage} // Pass pagination info down
-        />
-    );
-  }
 
   return (
     <Box m="20px">
       <Header
         title="Feedback Monitor"
-        subtitle="Viewing AI analysis of user messages"
+        subtitle="Viewing AI tokenization of student questions"
       />
-      <Box mt="20px">
-        {content} {/* Render the loading indicator, error message, or the table */}
 
-        {/* --- Pagination Controls --- */}
-        {/* Only show pagination if not loading, no error, and more than one page */}
-        {!isLoading && !error && totalPages > 1 && (
+      <Box mt="20px">
+        <FeedbackTable
+          feedbackData={fakeFeedbackData}
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+        />
+
+        {totalPages > 1 && (
           <Box display="flex" justifyContent="center" mt="20px">
             <Pagination
-              count={totalPages}        // Total number of pages
-              page={currentPage}        // Current active page
-              onChange={handlePageChange} // Function to call when page changes
-              color="primary"           // Or "secondary" based on your theme
-              showFirstButton           // Optional: Button to go to page 1
-              showLastButton            // Optional: Button to go to the last page
+              count={totalPages}
+              page={currentPage}
+              onChange={handlePageChange}
+              color="primary"
+              showFirstButton
+              showLastButton
             />
           </Box>
         )}
-        {/* --- End Pagination Controls --- */}
       </Box>
     </Box>
   );

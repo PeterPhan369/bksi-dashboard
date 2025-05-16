@@ -9,7 +9,52 @@ import {
   useTheme,
   Divider
 } from '@mui/material';
-import { fetchUsages } from '../api/apiFeedback';
+// Import commented out as we'll use fake data instead
+// import { fetchUsages } from '../api/apiFeedback';
+
+// Fake data for development and testing
+const FAKE_USAGE_DATA = [
+  {
+    _id: "serv001",
+    name: "GPT-4",
+    usage_rate: 78.5
+  },
+  {
+    _id: "serv002",
+    name: "GPT-3.5",
+    usage_rate: 85.2
+  },
+  {
+    _id: "serv003",
+    name: "Bard",
+    usage_rate: 62.8
+  },
+  {
+    _id: "serv004",
+    name: "Claude 2",
+    usage_rate: 71.3
+  },
+  {
+    _id: "serv005",
+    name: "Llama 2",
+    usage_rate: 92.1
+  },
+  {
+    _id: "serv006",
+    name: "Mistral",
+    usage_rate: 68.7
+  }
+];
+
+// Mock API function
+const mockFetchUsages = () => {
+  return new Promise((resolve) => {
+    // Simulate network delay
+    setTimeout(() => {
+      resolve(FAKE_USAGE_DATA);
+    }, 1200);
+  });
+};
 
 const UsageRejectionChart = () => {
   const [data, setData] = useState([]);
@@ -24,7 +69,8 @@ const UsageRejectionChart = () => {
     const getUsageData = async () => {
       try {
         setLoading(true);
-        const resData = await fetchUsages();
+        // Use mock function instead of actual API call
+        const resData = await mockFetchUsages();
         const services = Array.isArray(resData) ? resData : [resData];
         const transformed = services.map(service => ({
           _id: service._id,
