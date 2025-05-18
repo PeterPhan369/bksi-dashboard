@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -19,7 +19,6 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PolicyIcon from "@mui/icons-material/Policy";
 import StorageIcon from "@mui/icons-material/Storage";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
 import MetricsDisplay from "./MetricsDisplay";
 import AddServiceDialog from "./AddServiceDialog";
 import apiService from "../api/apiServices";
@@ -29,6 +28,21 @@ const ServiceManager = () => {
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: "", severity: "success" });
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const data = await apiService.getServices();
+        setServices(data);
+      } catch (err) {
+        console.error("Could not load services", err);
+        setServices([]);
+      }
+    }
+    fetchServices();
+  }, []);
+
+
 
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);

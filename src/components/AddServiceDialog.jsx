@@ -1,646 +1,278 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { addService } from '../api/apiServices';
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  MenuItem,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
+  TextField,
+  Button,
   IconButton,
-  Tooltip,
-  FormGroup,
-  FormControlLabel,
+  Grid,
+  Typography,
   Checkbox,
-  Divider,
-  Snackbar,
-  Alert
-} from "@mui/material";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+  FormControlLabel,
+  FormGroup,
+  Box,
+  Tooltip
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
-const AddServiceDialog = ({ open, onClose, onSave, service }) => {
-  const isEditMode = !!service;
-  const [apiError, setApiError] = useState(null);
+const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
+  const [serviceName, setServiceName] = useState('');
+  const [instances, setInstances] = useState([{ host: '127.0.0.1', port: '' }]);
+  const [selectedMetrics, setSelectedMetrics] = useState({
+    ai_request_total: false,
+    ai_request_latency_seconds: false,
+    model_inferences_total: false,
+    model_inference_errors_total: false,
+    model_response_time_seconds: false,
+    model_batch_size: false,
+    model_input_data_size_bytes: false,
+    model_output_data_size_bytes: false,
+    model_input_tokens_total: false,
+    model_output_tokens_total: false,
+    ai_model_accuracy: false,
+    ai_model_loss: false,
+    ai_memory_usage_bytes: false,
+    ai_cpu_usage_percent: false,
+    ai_gpu_memory_usage_bytes: false,
+    ai_gpu_utilization_percent: false
+  });
+
+  const [nameError, setNameError] = useState('');
+  const [instanceErrors, setInstanceErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const initialFormState = {
-    name: "",
-    hosts: ["127.0.0.1"],
-    ports: [9020],
-    replicas: 1,
-    metrics: {
-      ai_request_total: false,
-      ai_request_latency_seconds: false,
-      model_inferences_total: false,
-      model_inference_errors_total: false,
-      model_response_time_seconds: false,
-      model_batch_size: false,
-      model_input_data_size_bytes: false,
-      model_output_data_size_bytes: false,
-      model_input_tokens_total: false,
-      model_output_tokens_total: false,
-      ai_model_accuracy: false,
-      ai_model_loss: false,
-      ai_memory_usage_bytes: false
+
+  useEffect(() => {
+    setInstanceErrors(instances.map(() => ({ host: '', port: '' })));
+  }, [instances.length]);
+
+  const handleAddInstance = () => {
+    setInstances([...instances, { host: '127.0.0.1', port: '' }]);
+    setInstanceErrors([...instanceErrors, { host: '', port: '' }]);
+  };
+
+  const handleRemoveInstance = (index) => {
+    if (instances.length > 1) {
+      const updatedInstances = [...instances];
+      updatedInstances.splice(index, 1);
+      setInstances(updatedInstances);
+
+      const updatedErrors = [...instanceErrors];
+      updatedErrors.splice(index, 1);
+      setInstanceErrors(updatedErrors);
     }
   };
 
-  const [formData, setFormData] = useState(initialFormState);
-  const [errors, setErrors] = useState({});
+  const handleInstanceChange = (index, field, value) => {
+    const updatedInstances = [...instances];
+    updatedInstances[index][field] = value;
+    setInstances(updatedInstances);
 
-  // Load service data when editing
-  useEffect(() => {
-    if (service) {
-      setFormData({
-        name: service.name || "",
-        hosts: service.hosts || ["127.0.0.1"],
-        ports: service.ports || [9020],
-        replicas: service.hosts?.length || 1,
-        metrics: {
-          ai_request_total: service.metrics?.includes("ai_request_total") || false,
-          ai_request_latency_seconds: service.metrics?.includes("ai_request_latency_seconds") || false,
-          model_inferences_total: service.metrics?.includes("model_inferences_total") || false,
-          model_inference_errors_total: service.metrics?.includes("model_inference_errors_total") || false,
-          model_response_time_seconds: service.metrics?.includes("model_response_time_seconds") || false,
-          model_batch_size: service.metrics?.includes("model_batch_size") || false,
-          model_input_data_size_bytes: service.metrics?.includes("model_input_data_size_bytes") || false,
-          model_output_data_size_bytes: service.metrics?.includes("model_output_data_size_bytes") || false,
-          model_input_tokens_total: service.metrics?.includes("model_input_tokens_total") || false,
-          model_output_tokens_total: service.metrics?.includes("model_output_tokens_total") || false,
-          ai_model_accuracy: service.metrics?.includes("ai_model_accuracy") || false,
-          ai_model_loss: service.metrics?.includes("ai_model_loss") || false,
-          ai_memory_usage_bytes: service.metrics?.includes("ai_memory_usage_bytes") || false
-        }
-      });
-    } else {
-      setFormData(initialFormState);
-    }
-    setErrors({});
-  }, [service, open]);
+    const updatedErrors = [...instanceErrors];
+    updatedErrors[index] = { ...updatedErrors[index], [field]: '' };
+    setInstanceErrors(updatedErrors);
+  };
 
-  // Ensure replicas always equals the number of host/port pairs
-  useEffect(() => {
-    if (formData.hosts.length !== formData.replicas) {
-      setFormData(prev => ({
-        ...prev,
-        replicas: formData.hosts.length
-      }));
-    }
-  }, [formData.hosts.length]);
+  const handleMetricChange = (metric) => {
+    setSelectedMetrics({ ...selectedMetrics, [metric]: !selectedMetrics[metric] });
+  };
 
   const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Service name is required";
-    
-    // Validate host entries
-    if (formData.hosts.length === 0) {
-      newErrors.hosts = "At least one host is required";
+    let isValid = true;
+    if (!serviceName.trim()) {
+      setNameError('Service name is required');
+      isValid = false;
     } else {
-      formData.hosts.forEach((host, index) => {
-        if (!host.trim()) {
-          newErrors[`hosts[${index}]`] = "Host cannot be empty";
-        }
-      });
+      setNameError('');
     }
-    
-    // Validate port entries
-    if (formData.ports.length === 0) {
-      newErrors.ports = "At least one port is required";
-    } else {
-      formData.ports.forEach((port, index) => {
-        if (!port || isNaN(port)) {
-          newErrors[`ports[${index}]`] = "Port must be a valid number";
-        }
-      });
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  // Handle numeric fields (but replicas will be auto-calculated)
-  const handleNumericChange = (e) => {
-    const { name, value } = e.target;
-    // We're no longer allowing direct editing of replicas since it's now synced with host/port pairs
-    if (name !== 'replicas') {
-      const numValue = parseInt(value, 10);
-      if (!isNaN(numValue) || value === "") {
-        setFormData({
-          ...formData,
-          [name]: value === "" ? "" : numValue
-        });
+    const errors = instances.map(instance => {
+      const error = { host: '', port: '' };
+      if (!instance.host) {
+        error.host = 'Host is required';
+        isValid = false;
       }
-    }
-  };
-
-  // Handle checkbox changes for metrics
-  const handleMetricChange = (e) => {
-    const { name, checked } = e.target;
-    setFormData({
-      ...formData,
-      metrics: {
-        ...formData.metrics,
-        [name]: checked
+      if (!instance.port) {
+        error.port = 'Port is required';
+        isValid = false;
+      } else if (!/^\d+$/.test(instance.port) || parseInt(instance.port) < 1 || parseInt(instance.port) > 65535) {
+        error.port = 'Port must be a number between 1-65535';
+        isValid = false;
       }
+      return error;
     });
+
+    setInstanceErrors(errors);
+    return isValid;
   };
 
-  // Handle hosts array changes
-  const handleHostChange = (index, value) => {
-    const updatedHosts = [...formData.hosts];
-    updatedHosts[index] = value;
-    
-    setFormData({
-      ...formData,
-      hosts: updatedHosts
-    });
+  const handleReset = () => {
+    setServiceName('');
+    setInstances([{ host: '127.0.0.1', port: '' }]);
+    setSelectedMetrics(Object.fromEntries(Object.keys(selectedMetrics).map(key => [key, false])));
+    setNameError('');
+    setInstanceErrors([{ host: '', port: '' }]);
   };
 
-  // Handle ports array changes
-  const handlePortChange = (index, value) => {
-    const updatedPorts = [...formData.ports];
-    const numValue = parseInt(value, 10);
-    
-    if (!isNaN(numValue) || value === "") {
-      updatedPorts[index] = value === "" ? "" : numValue;
-      
-      setFormData({
-        ...formData,
-        ports: updatedPorts
-      });
-    }
+  const getSelectedMetricsArray = () => {
+    return Object.entries(selectedMetrics)
+      .filter(([_, checked]) => checked)
+      .map(([key]) => key);
   };
 
-  // Add new host/port pair and increment replicas
-  const addHostPortPair = () => {
-    const newReplicas = formData.hosts.length + 1;
-    setFormData({
-      ...formData,
-      hosts: [...formData.hosts, ""],
-      ports: [...formData.ports, ""],
-      replicas: newReplicas
-    });
-  };
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
-  // Remove a host/port pair and decrement replicas
-  const removeHostPortPair = (index) => {
-    if (formData.hosts.length <= 1) {
-      return; // Keep at least 1 pair
-    }
-    
-    const updatedHosts = formData.hosts.filter((_, i) => i !== index);
-    const updatedPorts = formData.ports.filter((_, i) => i !== index);
-    const newReplicas = updatedHosts.length;
-    
-    setFormData({
-      ...formData,
-      hosts: updatedHosts,
-      ports: updatedPorts,
-      replicas: newReplicas
-    });
-  };
-
-  // Post service data to API endpoint
-  const postServiceData = async (serviceData) => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const response = await fetch('http://127.0.0.1:8120/route/managment/service', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(serviceData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Error: ${response.status}`);
+      const serviceData = {
+        name: serviceName,
+        hosts: instances.map(i => i.host),
+        ports: instances.map(i => i.port),
+        endPoint: '/process',
+        replicas: instances.length,
+        metrics: getSelectedMetricsArray()
+      };
+      const response = await addService(serviceData);
+      if (response?.status === 'success') {
+        onServiceAdded();
+        handleReset();
+        onClose();
       }
-      
-      const data = await response.json();
-      return data;
     } catch (error) {
       console.error('Error posting service data:', error);
-      setApiError(error.message || 'Failed to save service');
-      throw error;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (validateForm()) {
-      // Prepare data for MongoDB based on your JSON structure
-      const selectedMetrics = [];
-      Object.entries(formData.metrics).forEach(([key, value]) => {
-        if (value) {
-          selectedMetrics.push(key);
-        }
-      });
-      
-      const dataToSave = {
-        ...(isEditMode ? { _id: service._id } : {}),
-        name: formData.name,
-        hosts: formData.hosts,
-        ports: formData.ports.map(port => parseInt(port, 10)),
-        replicas: formData.hosts.length, // Ensure replicas equals the number of host/port pairs
-        metrics: selectedMetrics
-      };
-      
-      try {
-        // Post to API endpoint
-        await postServiceData(dataToSave);
-        
-        // Then notify parent component
-        onSave(dataToSave);
-        onClose();
-      } catch (error) {
-        // Error is handled in postServiceData
-        // We don't close the dialog so user can correct any issues
-      }
-    }
-  };
-
-  const handleReset = () => {
-    if (isEditMode && service) {
-      const hosts = service.hosts || ["127.0.0.1"];
-      setFormData({
-        name: service.name || "",
-        hosts: hosts,
-        ports: service.ports || [9020],
-        replicas: hosts.length, // Set replicas to match the number of hosts
-        metrics: {
-          ai_request_total: service.metrics?.includes("ai_request_total") || false,
-          ai_request_latency_seconds: service.metrics?.includes("ai_request_latency_seconds") || false,
-          model_inferences_total: service.metrics?.includes("model_inferences_total") || false,
-          model_inference_errors_total: service.metrics?.includes("model_inference_errors_total") || false,
-          model_response_time_seconds: service.metrics?.includes("model_response_time_seconds") || false,
-          model_batch_size: service.metrics?.includes("model_batch_size") || false,
-          model_input_data_size_bytes: service.metrics?.includes("model_input_data_size_bytes") || false,
-          model_output_data_size_bytes: service.metrics?.includes("model_output_data_size_bytes") || false,
-          model_input_tokens_total: service.metrics?.includes("model_input_tokens_total") || false,
-          model_output_tokens_total: service.metrics?.includes("model_output_tokens_total") || false,
-          ai_model_accuracy: service.metrics?.includes("ai_model_accuracy") || false,
-          ai_model_loss: service.metrics?.includes("ai_model_loss") || false,
-          ai_memory_usage_bytes: service.metrics?.includes("ai_memory_usage_bytes") || false
-        }
-      });
-    } else {
-      // Reset to initial form state
-      setFormData(initialFormState);
-    }
-    setErrors({});
-  };
-
-  // Close error notification
-  const handleCloseError = () => {
-    setApiError(null);
+  const metricLabels = {
+    ai_request_total: 'AI Request Total',
+    ai_request_latency_seconds: 'AI Request Latency (seconds)',
+    model_inferences_total: 'Model Inferences Total',
+    model_inference_errors_total: 'Model Inference Errors Total',
+    model_response_time_seconds: 'Model Response Time (seconds)',
+    model_batch_size: 'Model Batch Size',
+    model_input_data_size_bytes: 'Input Data Size (bytes)',
+    model_output_data_size_bytes: 'Output Data Size (bytes)',
+    model_input_tokens_total: 'Input Tokens Total',
+    model_output_tokens_total: 'Output Tokens Total',
+    ai_model_accuracy: 'AI Model Accuracy',
+    ai_model_loss: 'AI Model Loss',
+    ai_memory_usage_bytes: 'AI Memory Usage (bytes)',
+    ai_cpu_usage_percent: 'AI CPU Usage (%)',
+    ai_gpu_memory_usage_bytes: 'AI GPU Memory Usage (bytes)',
+    ai_gpu_utilization_percent: 'AI GPU Utilization (%)'
   };
 
   return (
-    <>
-      <Dialog 
-        open={open} 
-        onClose={onClose}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center">
-            {isEditMode ? <EditIcon sx={{ mr: 1 }} /> : <AddCircleIcon sx={{ mr: 1 }} />}
-            <Typography variant="h6">
-              {isEditMode ? `Edit Service: ${service?.name}` : "Add New AI Service"}
-            </Typography>
-          </Box>
-        </DialogTitle>
-        
-        <DialogContent dividers>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Service Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                error={!!errors.name}
-                helperText={errors.name}
-                margin="normal"
-                required
-              />
-            </Grid>
-            
-            {/* Replicas Field - Now read-only since it's auto-calculated */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Replicas"
-                name="replicas"
-                type="number"
-                value={formData.replicas}
-                InputProps={{ 
-                  readOnly: true,
-                  inputProps: { min: 1 } 
-                }}
-                helperText="Replicas automatically matches the number of instances below"
-                margin="normal"
-                required
-              />
-            </Grid>
-            
-            {/* Host/Port Configuration Section */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, display: 'flex', alignItems: 'center' }}>
-                Hosts and Ports Configuration
-                <Tooltip title="Enter host and port for each service instance">
-                  <IconButton size="small">
-                    <HelpOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-            </Grid>
-            
-            {formData.hosts.map((host, index) => (
-              <React.Fragment key={index}>
-                <Grid item xs={12} md={5}>
-                  <TextField
-                    fullWidth
-                    label={`Host #${index + 1}`}
-                    value={host}
-                    onChange={(e) => handleHostChange(index, e.target.value)}
-                    error={!!errors[`hosts[${index}]`]}
-                    helperText={errors[`hosts[${index}]`]}
-                    margin="normal"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={5}>
-                  <TextField
-                    fullWidth
-                    label={`Port #${index + 1}`}
-                    value={formData.ports[index]}
-                    onChange={(e) => handlePortChange(index, e.target.value)}
-                    error={!!errors[`ports[${index}]`]}
-                    helperText={errors[`ports[${index}]`]}
-                    margin="normal"
-                    type="number"
-                    InputProps={{ inputProps: { min: 1 } }}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <IconButton 
-                    color="error" 
-                    onClick={() => removeHostPortPair(index)}
-                    disabled={formData.hosts.length <= 1}
-                    sx={{ mt: 2 }}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Grid>
-              </React.Fragment>
-            ))}
-            
-            <Grid item xs={12}>
-              <Button
-                variant="outlined"
-                startIcon={<AddCircleIcon />}
-                onClick={addHostPortPair}
-                sx={{ mt: 1 }}
-              >
-                Add Instance
-              </Button>
-            </Grid>
-            
-            {/* Metrics Selection Section */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mt: 3, mb: 1, display: 'flex', alignItems: 'center' }}>
-                Metrics to Monitor
-                <Tooltip title="Select which metrics you want to monitor for this service">
-                  <IconButton size="small">
-                    <HelpOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              
-              <FormGroup>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.ai_request_total} 
-                          onChange={handleMetricChange}
-                          name="ai_request_total"
-                        />
-                      }
-                      label="AI Request Total"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.ai_request_latency_seconds} 
-                          onChange={handleMetricChange}
-                          name="ai_request_latency_seconds"
-                        />
-                      }
-                      label="AI Request Latency (seconds)"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_inferences_total} 
-                          onChange={handleMetricChange}
-                          name="model_inferences_total"
-                        />
-                      }
-                      label="Model Inferences Total"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_inference_errors_total} 
-                          onChange={handleMetricChange}
-                          name="model_inference_errors_total"
-                        />
-                      }
-                      label="Model Inference Errors Total"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_response_time_seconds} 
-                          onChange={handleMetricChange}
-                          name="model_response_time_seconds"
-                        />
-                      }
-                      label="Model Response Time (seconds)"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_batch_size} 
-                          onChange={handleMetricChange}
-                          name="model_batch_size"
-                        />
-                      }
-                      label="Model Batch Size"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_input_data_size_bytes} 
-                          onChange={handleMetricChange}
-                          name="model_input_data_size_bytes"
-                        />
-                      }
-                      label="Input Data Size (bytes)"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_output_data_size_bytes} 
-                          onChange={handleMetricChange}
-                          name="model_output_data_size_bytes"
-                        />
-                      }
-                      label="Output Data Size (bytes)"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_input_tokens_total} 
-                          onChange={handleMetricChange}
-                          name="model_input_tokens_total"
-                        />
-                      }
-                      label="Input Tokens Total"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.model_output_tokens_total} 
-                          onChange={handleMetricChange}
-                          name="model_output_tokens_total"
-                        />
-                      }
-                      label="Output Tokens Total"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.ai_model_accuracy} 
-                          onChange={handleMetricChange}
-                          name="ai_model_accuracy"
-                        />
-                      }
-                      label="AI Model Accuracy"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.ai_model_loss} 
-                          onChange={handleMetricChange}
-                          name="ai_model_loss"
-                        />
-                      }
-                      label="AI Model Loss"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={formData.metrics.ai_memory_usage_bytes} 
-                          onChange={handleMetricChange}
-                          name="ai_memory_usage_bytes"
-                        />
-                      }
-                      label="AI Memory Usage (bytes)"
-                    />
-                  </Grid>
-                </Grid>
-              </FormGroup>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={onClose} color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={handleReset} color="secondary">
-            Reset
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            color="primary"
-            startIcon={isEditMode ? <EditIcon /> : <AddCircleIcon />}
-            disabled={isSubmitting}
-          >
-            {isSubmitting 
-              ? "Saving..." 
-              : isEditMode 
-                ? "Update Service" 
-                : "Add Service"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 1 } }}>
+      <DialogTitle sx={{ borderBottom: '1px solid #e0e0e0', p: 2 }}>
+        <Box display="flex" alignItems="center">
+          <AddIcon sx={{ mr: 1 }} />
+          <Typography variant="h6">Add New AI Service</Typography>
+        </Box>
+      </DialogTitle>
 
-      {/* Error Notification */}
-      <Snackbar 
-        open={!!apiError} 
-        autoHideDuration={6000} 
-        onClose={handleCloseError}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
-          {apiError}
-        </Alert>
-      </Snackbar>
-    </>
+      <DialogContent sx={{ p: 3 }}>
+        <Box mb={3}>
+          <TextField
+            label="Service Name"
+            fullWidth
+            variant="outlined"
+            value={serviceName}
+            onChange={(e) => {
+              setServiceName(e.target.value);
+              setNameError('');
+            }}
+            error={!!nameError}
+            helperText={nameError}
+            required
+            margin="normal"
+          />
+        </Box>
+
+        <Box mb={3}>
+          {instances.map((instance, index) => (
+            <Grid container spacing={2} key={index} alignItems="center" mb={2}>
+              <Grid item xs={5}>
+                <TextField
+                  label={`Host #${index + 1}`}
+                  fullWidth
+                  variant="outlined"
+                  value={instance.host}
+                  onChange={(e) => handleInstanceChange(index, 'host', e.target.value)}
+                  error={!!instanceErrors[index]?.host}
+                  helperText={instanceErrors[index]?.host}
+                  required
+                />
+              </Grid>
+              <Grid item xs={5}>
+                <TextField
+                  label={`Port #${index + 1}`}
+                  fullWidth
+                  variant="outlined"
+                  value={instance.port}
+                  onChange={(e) => handleInstanceChange(index, 'port', e.target.value)}
+                  error={!!instanceErrors[index]?.port}
+                  helperText={instanceErrors[index]?.port}
+                  required
+                />
+              </Grid>
+              <Grid item xs={2}>
+                <IconButton onClick={() => handleRemoveInstance(index)} disabled={instances.length <= 1} color="error">
+                  <DeleteIcon />
+                </IconButton>
+              </Grid>
+            </Grid>
+          ))}
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddInstance} sx={{ mt: 1 }}>
+            ADD INSTANCE
+          </Button>
+        </Box>
+
+        <Box>
+          <Box display="flex" alignItems="center" mb={2}>
+            <Typography variant="h6">Metrics to Monitor</Typography>
+            <Tooltip title="Select metrics you want to monitor for this AI service">
+              <HelpOutlineIcon sx={{ ml: 1, color: 'text.secondary' }} />
+            </Tooltip>
+          </Box>
+
+          <FormGroup>
+            <Grid container spacing={2}>
+              {Object.entries(metricLabels).map(([key, label]) => (
+                <Grid item xs={4} key={key}>
+                  <FormControlLabel
+                    control={<Checkbox checked={selectedMetrics[key]} onChange={() => handleMetricChange(key)} />}
+                    label={label}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </FormGroup>
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2, borderTop: '1px solid #e0e0e0', justifyContent: 'flex-end' }}>
+        <Button onClick={onClose} color="inherit">CANCEL</Button>
+        <Button onClick={handleReset} color="primary">RESET</Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          color="primary"
+          disabled={isSubmitting}
+          startIcon={<AddIcon />}
+        >
+          ADD SERVICE
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

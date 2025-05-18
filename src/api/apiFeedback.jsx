@@ -1,4 +1,3 @@
-// src/api/apiFeedback.js
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000';
@@ -36,12 +35,8 @@ export const fetchServiceRatings = async (serviceName, days) => {
 
 /**
  * Fetch rating distributions for *multiple* services in parallel.
- * @param {string[]} serviceNames – list of service_name strings.
- * @param {number} [days]        – optional window for metrics.
- * @returns Promise<array of { _id, name, thumbUp, neutral, thumbDown }>
  */
 export const fetchAllServiceRatings = async (serviceNames, days) => {
-  // serviceNames could come from your app config or another API
   const calls = serviceNames.map(name => fetchServiceRatings(name, days));
   return Promise.all(calls);
 };
@@ -61,9 +56,9 @@ export const fetchUsages = async (serviceName, days) => {
       { params }
     );
 
-    const usageTotal     = metrics.usage_total   || 0;
+    const usageTotal = metrics.usage_total || 0;
     const rejectionTotal = metrics.rejection_total || 0;
-    const total          = usageTotal + rejectionTotal;
+    const total = usageTotal + rejectionTotal;
 
     return {
       _id: serviceName,
@@ -91,13 +86,27 @@ export const fetchSuggestions = async (serviceName, limit) => {
       { params }
     );
 
-    // backend returns { value, timestamp } objects
     return data.map(item => ({
       text: item.value,
       timestamp: item.timestamp,
     }));
   } catch (error) {
     console.error(`Error fetching suggestions for ${serviceName}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Optional: Submit feedback to backend.
+ * Hits: POST /feedback
+ * Body: [{ service_name, feedback_type, value }]
+ */
+export const submitFeedback = async (feedbackArray) => {
+  try {
+    const { data } = await axios.post(`${API_BASE_URL}/feedback`, feedbackArray);
+    return data;
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
     throw error;
   }
 };

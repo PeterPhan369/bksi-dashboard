@@ -1,4 +1,5 @@
 // src/components/ApiKeyGeneratorPage.jsx
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -16,8 +17,7 @@ import {
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 
-// --- Import the API service function ---
-import { generateApiKey } from '../api/apiKey'; // Adjust path as needed
+import { generateApiKey } from '../api/apiKey';
 
 const ApiKeyGeneratorPage = () => {
   const [apiKey, setApiKey] = useState('');
@@ -28,40 +28,29 @@ const ApiKeyGeneratorPage = () => {
     severity: 'info',
   });
 
-  // --- Updated handler using the service ---
   const handleGenerateKey = async () => {
     setLoading(true);
     setApiKey('');
-
     try {
-      // Call the separated API service function
       const fetchedKey = await generateApiKey();
-
-      // Update state on success
       setApiKey(fetchedKey);
       setNotification({
         open: true,
         message: 'New API Key generated successfully!',
         severity: 'success',
       });
-
     } catch (error) {
-      // Handle errors thrown by the service function
       console.error('Failed to fetch API Key:', error);
       setNotification({
         open: true,
-        // Use the error message provided by the service function
         message: error.message || 'Failed to generate API Key.',
         severity: 'error',
       });
-      setApiKey(''); // Ensure key is cleared on error
-
     } finally {
-      setLoading(false); // Stop loading regardless of outcome
+      setLoading(false);
     }
   };
 
-  // --- Copy key function remains the same ---
   const handleCopyKey = async () => {
     if (!apiKey) {
       setNotification({ open: true, message: 'Generate an API Key first!', severity: 'warning' });
@@ -76,13 +65,11 @@ const ApiKeyGeneratorPage = () => {
     }
   };
 
-  // --- Close notification function remains the same ---
   const handleCloseNotification = (event, reason) => {
     if (reason === 'clickaway') return;
     setNotification({ ...notification, open: false });
   };
 
-  // --- JSX Rendering part remains the same ---
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -105,7 +92,16 @@ const ApiKeyGeneratorPage = () => {
         </Button>
 
         {apiKey && !loading && (
-          <Paper variant="outlined" sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, backgroundColor: 'grey.100' }}>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              backgroundColor: 'grey.100'
+            }}
+          >
             <TextField
               fullWidth
               readOnly
@@ -116,12 +112,12 @@ const ApiKeyGeneratorPage = () => {
                 '& .MuiInputBase-input.Mui-disabled': {
                   WebkitTextFillColor: '#000',
                   backgroundColor: 'white',
-                  cursor: 'text'
+                  cursor: 'text',
                 },
                 '& .MuiInputBase-input': {
                   fontFamily: 'monospace',
-                  fontSize: '0.95rem'
-                }
+                  fontSize: '0.95rem',
+                },
               }}
             />
             <Tooltip title="Copy API Key">

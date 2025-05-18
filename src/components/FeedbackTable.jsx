@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { fetchSuggestions } from '../api/apiFeedback';
 
-const FeedbackTable = ({ serviceName, suggestionLimit = 10 }) => {
-  const [suggestions, setSuggestions] = useState([]);
+const FeedbackTable = ({ serviceName, itemsPerPage = 10, currentPage }) => {
+  const [allSuggestions, setAllSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -11,8 +11,8 @@ const FeedbackTable = ({ serviceName, suggestionLimit = 10 }) => {
     const loadSuggestions = async () => {
       try {
         setLoading(true);
-        const data = await fetchSuggestions(serviceName, suggestionLimit);
-        setSuggestions(data);
+        const data = await fetchSuggestions(serviceName, 100); // Fetch max, paginate in UI
+        setAllSuggestions(data);
       } catch (err) {
         console.error(err);
         setError('Failed to fetch suggestions');
@@ -22,7 +22,12 @@ const FeedbackTable = ({ serviceName, suggestionLimit = 10 }) => {
     };
 
     if (serviceName) loadSuggestions();
-  }, [serviceName, suggestionLimit]);
+  }, [serviceName]);
+
+  const paginated = allSuggestions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -34,7 +39,7 @@ const FeedbackTable = ({ serviceName, suggestionLimit = 10 }) => {
         <p className="text-gray-500">Loading suggestions...</p>
       ) : error ? (
         <p className="text-red-600">{error}</p>
-      ) : suggestions.length === 0 ? (
+      ) : paginated.length === 0 ? (
         <p className="text-gray-500">No suggestions available.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -47,9 +52,11 @@ const FeedbackTable = ({ serviceName, suggestionLimit = 10 }) => {
               </tr>
             </thead>
             <tbody>
-              {suggestions.map((item, index) => (
+              {paginated.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border text-center">{index + 1}</td>
+                  <td className="px-4 py-2 border text-center">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td className="px-4 py-2 border">
                     {new Date(item.timestamp).toLocaleString()}
                   </td>
