@@ -6,9 +6,15 @@ axios.defaults.withCredentials = true;
 
 export const login = async (credentials) => {
   try {
-    // Backend sets HTTP‑only cookies on this call
-    await axios.post(`/api/login`, credentials, {
-      withCredentials: true,
+    // Ensure username and password exist
+    if (!credentials?.username || !credentials?.password) {
+      throw new Error("Username and password are required.");
+    }
+
+    // Backend sets HTTP-only cookies on this call
+    await axios.post(`/api/login`, {
+      username: credentials.username,
+      password: credentials.password,
     });
 
     // Store minimal user info so we know someone is logged in
@@ -17,9 +23,7 @@ export const login = async (credentials) => {
 
     // Fetch API key (cookies auto‑sent)
     try {
-      const { data } = await axios.get(`/api/key`, {
-        withCredentials: true,
-      });
+      const { data } = await axios.get(`/api/key`);
       if (data.apiKey) {
         localStorage.setItem('apiKey', data.apiKey);
       }
@@ -30,20 +34,28 @@ export const login = async (credentials) => {
     return { user };
   } catch (error) {
     console.error('Login error:', error);
-    throw error.response?.data || { message: 'Failed to login. Please try again.' };
+    // Make sure to throw a consistent object even if response is missing
+    throw {
+      message: error?.response?.data?.message || error?.message || 'Login failed.',
+    };
   }
 };
 
 export const register = async (userData) => {
-  const { data } = await axios.post(`/api/signup`, userData);
-  
-  return data;
+  try {
+    const { data } = await axios.post(`/api/signup`, userData);
+    return data;
+  } catch (error) {
+    console.error('Registration error:', error);
+    throw {
+      message: error?.response?.data?.message || error?.message || 'Registration failed.',
+    };
+  }
 };
 
-export const logout = async () => {
-  // Clear client‑side markers
-  const { data } = await axios.post(`http://127.0.0.1:8210/logout`,);
-  console.log("logout");
+export const logout = () => {
+  localStorage.removeItem('user');
+  localStorage.removeItem('apiKey');
 };
 
 export const getCurrentUser = () => {

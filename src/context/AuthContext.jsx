@@ -57,6 +57,20 @@ export const AuthProvider = ({ children }) => {
     setNotification({ show: false, message: '', type: 'info' });
   };
 
+  const register = async (userData) => {
+    setLoading(true);
+    try {
+      await authApi.register(userData);
+      setNotification({ show: true, message: 'Registration successful!', type: 'success' });
+      return true;
+    } catch (err) {
+      setNotification({ show: true, message: err.message || 'Registration failed.', type: 'error' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Auth is purely: do we have a user?
   const isAuthenticated = !!user;
 
@@ -72,6 +86,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         notification,
         clearNotification,
+        register,
       }}
     >
       {children}
