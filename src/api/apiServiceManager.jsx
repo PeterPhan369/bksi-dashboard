@@ -20,7 +20,7 @@ export const addService = async (serviceData) => {
       JSON.stringify(transformedData, null, 2)
     );
     const { data } = await axios.post(
-      `/api/route/manage/service`,
+      /api/route/manage/service,
       transformedData,
       {
         headers: { "Content-Type": "application/json", "bksi-api-key": apiKey },
@@ -93,8 +93,7 @@ export const deleteInstance = async (instanceId) => {
 };
 
 export default {
+  getServices,
   addService,
-  deleteService,
-  addInstance,
-  deleteInstance,
+  deleteService
 };

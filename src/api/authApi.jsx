@@ -23,9 +23,7 @@ export const login = async (credentials) => {
 
     // Fetch API key (cookies auto‑sent)
     try {
-      const { data } = await axios.get(`/api/key`, {
-        withCredentials: true,
-      });
+      const { data } = await axios.get(`http://127.0.0.1:8210/key`);
       if (data.apiKey) {
         localStorage.setItem("apiKey", data.apiKey);
       }

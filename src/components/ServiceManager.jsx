@@ -137,7 +137,14 @@ const ServiceManager = () => {
         severity: "success",
       });
     } catch (err) {
-      setNotification({ open: true, message: err.message, severity: "error" });
+      console.error("Failed to delete service:", err);
+      setNotification({
+        open: true,
+        message: `Failed to delete service: ${err.message || "Unknown error"}`,
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -165,7 +172,7 @@ const ServiceManager = () => {
       </Box>
 
       {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
           <CircularProgress />
         </Box>
       )}
