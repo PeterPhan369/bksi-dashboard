@@ -72,7 +72,6 @@ export const AuthProvider = ({ children }) => {
         loading,
         notification,
         clearNotification,
-        register,
       }}
     >
       {children}

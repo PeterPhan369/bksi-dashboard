@@ -12,7 +12,7 @@ export const login = async (credentials) => {
     }
 
     // Backend sets HTTP-only cookies on this call
-    await axios.post(`/api/login`, {
+    await axios.post(`http://127.0.0.1:8210/login`, {
       username: credentials.username,
       password: credentials.password,
     });
@@ -23,7 +23,7 @@ export const login = async (credentials) => {
 
     // Fetch API key (cookies auto‑sent)
     try {
-      const { data } = await axios.get(`/api/key`);
+      const { data } = await axios.get(`http://127.0.0.1:8210/key`);
       if (data.apiKey) {
         localStorage.setItem('apiKey', data.apiKey);
       }
@@ -42,7 +42,7 @@ export const login = async (credentials) => {
 };
 
 export const register = async (userData) => {
-  const { data } = await axios.post(`/api/signup`, userData);
+  const { data } = await axios.post(`http://127.0.0.1:8210/signup`, userData);
   
   return data;
 };
