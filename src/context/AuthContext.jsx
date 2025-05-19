@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     type: 'info',
   });
 
-  // On mount, check if we already have a user
+  // On mount, check if we already have a user vv
   useEffect(() => {
     const stored = authApi.getCurrentUser();
     if (stored) setUser(stored);
@@ -34,7 +34,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
+  const register = async (userData) => {
+    setLoading(true);
+    try {
+      await authApi.register(userData);
+      setNotification({ show: true, message: 'Registration successful!', type: 'success' });
+      return true;
+    } catch (err) {
+      setNotification({ show: true, message: err.message || 'Registration failed.', type: 'error' });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
   const logout = () => {
     authApi.logout();
     setUser(null);
@@ -55,6 +67,7 @@ export const AuthProvider = ({ children }) => {
         token: user?.token || null,
         login,
         logout,
+        register,
         isAuthenticated,
         loading,
         notification,

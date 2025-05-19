@@ -36,13 +36,14 @@ export const login = async (credentials) => {
 
 export const register = async (userData) => {
   const { data } = await axios.post(`/api/signup`, userData);
+  
   return data;
 };
 
-export const logout = () => {
+export const logout = async () => {
   // Clear client‑side markers
-  localStorage.removeItem('user');
-  localStorage.removeItem('apiKey');
+  const { data } = await axios.post(`http://127.0.0.1:8210/logout`,);
+  console.log("logout");
 };
 
 export const getCurrentUser = () => {

@@ -69,6 +69,7 @@ const Register = () => {
     }
 
     try {
+      console.log(register)
       await register(formData);
       navigate('/login');
     } catch (error) {

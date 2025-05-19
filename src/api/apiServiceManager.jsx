@@ -16,11 +16,10 @@ export const addService = async (serviceData) => {
   try {
     console.log("📤 Sending transformed data:", JSON.stringify(transformedData, null, 2));
     const { data } = await axios.post(
-      `/api/service`,
+      `/api/route/manage/service`,
       transformedData,
       {
-        headers: { "Content-Type": "application/json" },
-        withCredentials: true,
+        headers: { "Content-Type": "application/json" , "bksi-api-key": "876a9d27b102efe34f9e2523fd622933f0d4ac258a714fc370032bfd12aeb8bc"},
       }
     );
     console.log("✅ Received response from /service:", data);
