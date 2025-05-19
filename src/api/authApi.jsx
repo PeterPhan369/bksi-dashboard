@@ -42,20 +42,15 @@ export const login = async (credentials) => {
 };
 
 export const register = async (userData) => {
-  try {
-    const { data } = await axios.post(`/api/signup`, userData);
-    return data;
-  } catch (error) {
-    console.error('Registration error:', error);
-    throw {
-      message: error?.response?.data?.message || error?.message || 'Registration failed.',
-    };
-  }
+  const { data } = await axios.post(`/api/signup`, userData);
+  
+  return data;
 };
 
-export const logout = () => {
-  localStorage.removeItem('user');
-  localStorage.removeItem('apiKey');
+export const logout = async () => {
+  // Clear client‑side markers
+  const { data } = await axios.post(`http://127.0.0.1:8210/logout`,);
+  console.log("logout");
 };
 
 export const getCurrentUser = () => {
