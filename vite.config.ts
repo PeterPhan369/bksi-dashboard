@@ -8,13 +8,13 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8210',
+        target: 'http://127.0.0.1:8215',
         changeOrigin: true,
         secure: false,
         rewrite: path => path.replace(/^\/api/, ''), 
       },
       '/manage': {
-        target: 'http://127.0.0.1:3200',
+        target: 'http://127.0.0.1:3215/route/manage',
         changeOrigin: true,
         secure: false,
         rewrite: path => path.replace(/^\/manage/, ''), 

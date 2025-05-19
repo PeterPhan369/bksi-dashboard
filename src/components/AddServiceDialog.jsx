@@ -25,7 +25,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
   const [serviceName, setServiceName] = useState('');
   const [endPoint, setEndPoint] = useState('');
-  const [instances, setInstances] = useState([{ host: '127.0.0.1', port: '' }]);
+  const [instances, setInstances] = useState([{ host: '', port: '' }]);
   const [selectedMetrics, setSelectedMetrics] = useState({
     ai_request_total: false,
     ai_request_latency_seconds: false,
@@ -99,7 +99,7 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
   const handleReset = () => {
     setServiceName('');
     setEndPoint('');
-    setInstances([{ host: '127.0.0.1', port: '' }]);
+    setInstances([{ host: '', port: '' }]);
     setSelectedMetrics(Object.fromEntries(Object.keys(selectedMetrics).map(k => [k, false])));
     setNameError('');
     setInstanceErrors([]);

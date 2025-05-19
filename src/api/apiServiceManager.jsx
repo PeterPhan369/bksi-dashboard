@@ -19,7 +19,7 @@ export const addService = async (serviceData) => {
       `/api/route/manage/service`,
       transformedData,
       {
-        headers: { "Content-Type": "application/json" , "bksi-api-key": "876a9d27b102efe34f9e2523fd622933f0d4ac258a714fc370032bfd12aeb8bc"},
+        headers: { "Content-Type": "application/json" , "bksi-api-key": "eec96a20fe978aa32da406b8957b5ee73d17d1a2964fbb7b99f76f3495b05f85"},
       }
     );
     console.log("✅ Received response from /service:", data);
