@@ -2,6 +2,7 @@
 import axios from "axios";
 
 axios.defaults.withCredentials = true;
+const apiKey = import.meta.env.VITE_BKSI_API_KEY;
 
 export const addService = async (serviceData) => {
   const transformedData = {
@@ -14,12 +15,15 @@ export const addService = async (serviceData) => {
   };
 
   try {
-    console.log("📤 Sending transformed data:", JSON.stringify(transformedData, null, 2));
+    console.log(
+      "📤 Sending transformed data:",
+      JSON.stringify(transformedData, null, 2)
+    );
     const { data } = await axios.post(
       `/api/route/manage/service`,
       transformedData,
       {
-        headers: { "Content-Type": "application/json" , "bksi-api-key": "eec96a20fe978aa32da406b8957b5ee73d17d1a2964fbb7b99f76f3495b05f85"},
+        headers: { "Content-Type": "application/json", "bksi-api-key": apiKey },
       }
     );
     console.log("✅ Received response from /service:", data);
@@ -33,12 +37,18 @@ export const addService = async (serviceData) => {
 
 export const deleteService = async (serviceName) => {
   try {
-    const { data } = await axios.delete(`/api/service/${serviceName}`, {
-      withCredentials: true,
-    });
+    const { data } = await axios.delete(
+      `/api/route/manage/service/${serviceName}`,
+      {
+        headers: { "Content-Type": "application/json", "bksi-api-key": apiKey },
+      }
+    );
     return data;
   } catch (error) {
-    console.error("Error deleting service:", error.response?.data || error.message);
+    console.error(
+      "Error deleting service:",
+      error.response?.data || error.message
+    );
     throw new Error("Failed to delete service. Please try again later.");
   }
 };
@@ -53,15 +63,16 @@ export const addInstance = async (instanceData) => {
 
   try {
     console.log("📤 Sending new instance:", payload);
-    const { data } = await axios.post(
-      `/api/instance`,
-      payload,
-      { withCredentials: true }
-    );
+    const { data } = await axios.post(`/api/instance`, payload, {
+      withCredentials: true,
+    });
     console.log("✅ Received from /instance:", data);
     return data;
   } catch (error) {
-    console.error("❌ Error adding instance:", error.response?.data || error.message);
+    console.error(
+      "❌ Error adding instance:",
+      error.response?.data || error.message
+    );
     throw new Error("Failed to add instance. Please try again later.");
   }
 };
@@ -73,7 +84,10 @@ export const deleteInstance = async (instanceId) => {
     });
     return data;
   } catch (error) {
-    console.error("Error deleting instance:", error.response?.data || error.message);
+    console.error(
+      "Error deleting instance:",
+      error.response?.data || error.message
+    );
     throw new Error("Failed to delete instance. Please try again later.");
   }
 };

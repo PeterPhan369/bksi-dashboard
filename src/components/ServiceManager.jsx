@@ -1,28 +1,28 @@
+// Fixed ServiceRow with delete and add instance modals + delete service modal in parent
 import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Button,
-  Chip,
   Paper,
-  Divider,
-  Tooltip,
-  Alert,
   Snackbar,
-  CircularProgress
+  Alert,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import IconButton from "@mui/material/IconButton";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import PolicyIcon from "@mui/icons-material/Policy";
-import StorageIcon from "@mui/icons-material/Storage";
-import DeleteIcon from "@mui/icons-material/Delete";
-import MetricsDisplay from "./MetricsDisplay";
 import AddServiceDialog from "./AddServiceDialog";
 import apiService from "../api/apiServices";
+import ServiceRow from "./ServiceRow";
 
 const ServiceManager = () => {
   const [services, setServices] = useState([]);
@@ -31,74 +31,135 @@ const ServiceManager = () => {
   const [notification, setNotification] = useState({
     open: false,
     message: "",
-    severity: "success"
+    severity: "success",
   });
+  const [confirmDeleteService, setConfirmDeleteService] = useState(null);
+
+  const loadServices = async () => {
+    setLoading(true);
+    try {
+      const data = await apiService.getServices();
+      setServices(data);
+    } catch {
+      setServices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const data = await apiService.getServices();
-        setServices(data);
-      } catch {
-        setServices([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadServices();
   }, []);
 
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);
 
-  const handleSaveService = async (serviceData) => {
-    setLoading(true);
+  const handleSaveService = async () => {
     try {
-      await apiService.addService(serviceData);
-      setServices(prev => [
-        ...prev,
-        { ...serviceData, Sname: serviceData.name, status: "active" }
-      ]);
-      setNotification({ open: true, message: "Service added successfully", severity: "success" });
+      setLoading(true);
+      setNotification({
+        open: true,
+        message: "Service added",
+        severity: "success",
+      });
+      handleCloseDialog();
     } catch (err) {
+      console.error("Add Service Error:", err);
       setNotification({ open: true, message: err.message, severity: "error" });
     } finally {
+      const data = await apiService.getServices();
+      setServices(data);
       setLoading(false);
-      handleCloseDialog();
     }
   };
 
-  const handleDeleteService = async (serviceName) => {
-    if (!window.confirm("Are you sure you want to delete this service?")) return;
+  const handleDeleteService = async () => {
+    if (!confirmDeleteService) return;
     try {
-      await apiService.deleteService(serviceName);
-      setServices(prev => prev.filter(s => s.Sname !== serviceName));
-      setNotification({ open: true, message: "Service deleted successfully", severity: "success" });
+      await apiService.deleteService(confirmDeleteService);
+      setServices((prev) =>
+        prev.filter((s) => s.name !== confirmDeleteService)
+      );
+      setNotification({
+        open: true,
+        message: "Service deleted",
+        severity: "success",
+      });
+    } catch (err) {
+      setNotification({ open: true, message: err.message, severity: "error" });
+    } finally {
+      setConfirmDeleteService(null);
+    }
+  };
+
+  const handleDeleteInstance = async (serviceName, instanceId) => {
+    try {
+      await apiService.deleteInstance(instanceId);
+      setServices((prev) =>
+        prev.map((s) =>
+          s.name === serviceName
+            ? {
+                ...s,
+                instances: s.instances.filter((i) => i.id !== instanceId),
+              }
+            : s
+        )
+      );
+      setNotification({
+        open: true,
+        message: "Instance deleted",
+        severity: "success",
+      });
+    } catch (err) {
+      setNotification({ open: true, message: err.message, severity: "error" });
+    }
+  };
+
+  const handleAddInstance = async (serviceId, host, port, endPoint) => {
+    try {
+      await apiService.addInstance({ serviceId, host, port, endPoint });
+      setServices((prev) =>
+        prev.map((s) =>
+          s.id === serviceId
+            ? {
+                ...s,
+                instances: [
+                  ...(s.instances || []),
+                  { id: crypto.randomUUID(), host, port, endPoint },
+                ],
+              }
+            : s
+        )
+      );
+      setNotification({
+        open: true,
+        message: "Instance added",
+        severity: "success",
+      });
     } catch (err) {
       setNotification({ open: true, message: err.message, severity: "error" });
     }
   };
 
   const handleCloseNotification = () =>
-    setNotification(n => ({ ...n, open: false }));
-
-  const getFrameworkColor = (framework) => ({
-    tensorflow: "primary", pytorch: "secondary", keras: "success",
-    onnx: "info", scikit: "warning", huggingface: "error", custom: "default"
-  }[framework] || "default");
-
-  const getTypeIcon = (type) =>
-    type === "nlp" ? <PolicyIcon fontSize="small" /> : <StorageIcon fontSize="small" />;
-
-  const getStatusColor = (status) => ({
-    active: "success", inactive: "default", error: "error", maintenance: "warning"
-  }[status] || "default");
+    setNotification((n) => ({ ...n, open: false }));
+  const handleOpenDeleteConfirm = (serviceName) =>
+    setConfirmDeleteService(serviceName);
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 900, mx: "auto", p: 3, fontSize: "1rem" }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography variant="h5">AI Service Manager</Typography>
-        <Button startIcon={<AddCircleIcon />} onClick={handleOpenDialog}>
+        <Typography
+          variant="h5"
+          sx={{ fontSize: "1.6rem", fontWeight: "bold" }}
+        >
+          AI Service Manager
+        </Typography>
+        <Button
+          startIcon={<AddCircleIcon />}
+          onClick={handleOpenDialog}
+          sx={{ fontSize: "1rem" }}
+        >
           Add Service
         </Button>
       </Box>
@@ -110,74 +171,101 @@ const ServiceManager = () => {
       )}
 
       {!loading && services.length === 0 && (
-        <Alert severity="info">No services found. Click "Add Service".</Alert>
+        <Alert severity="info" sx={{ fontSize: "1rem" }}>
+          No services found. Click "Add Service".
+        </Alert>
       )}
 
       {!loading && services.length > 0 && (
-        <Paper variant="outlined" sx={{ p: 0, mb: 4 }}>
-          {services.map((service, idx) => (
-            <React.Fragment key={service.Sname}>
-              {idx > 0 && <Divider />}
-              <Accordion disableGutters>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6">{service.Sname}</Typography>
-                    <Chip
-                      label={service.status}
-                      size="small"
-                      color={getStatusColor(service.status)}
-                      sx={{ ml: 1 }}
-                    />
-                    <Chip
-                      label={service.framework}
-                      size="small"
-                      color={getFrameworkColor(service.framework)}
-                      sx={{ ml: 1 }}
-                    />
-                    <Chip
-                      icon={getTypeIcon(service.type)}
-                      label={service.type}
-                      size="small"
-                      variant="outlined"
-                      sx={{ ml: 1 }}
-                    />
-                  </Box>
-                </AccordionSummary>
-
-                <AccordionDetails>
-                  {/* Moved delete button into details to avoid button-in-button */}
-                  <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
-                    <Tooltip title="Delete Service">
-                      <IconButton
-                        color="error"
-                        size="small"
-                        onClick={() => handleDeleteService(service.Sname)}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                  <MetricsDisplay metrics={service.metrics} />
-                </AccordionDetails>
-              </Accordion>
-            </React.Fragment>
-          ))}
-        </Paper>
+        <TableContainer
+          component={Paper}
+          sx={{ borderRadius: 2, boxShadow: 3 }}
+        >
+          <Table>
+            <TableHead sx={{ backgroundColor: "#f0f0f0" }}>
+              <TableRow>
+                <TableCell />
+                <TableCell sx={{ fontWeight: 600, fontSize: "1rem" }}>
+                  Service Name
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontWeight: 600, fontSize: "1rem" }}
+                >
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {services.map((service, index) =>
+                service?.name ? (
+                  <ServiceRow
+                    key={service.name || index} // fallback key
+                    service={service}
+                    onDeleteService={handleOpenDeleteConfirm}
+                    onDeleteInstance={handleDeleteInstance}
+                    onAddInstance={handleAddInstance}
+                  />
+                ) : null
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       <AddServiceDialog
         open={openDialog}
         onClose={handleCloseDialog}
-        onSave={handleSaveService}
+        onServiceAdded={handleSaveService}
       />
+
+      <Dialog
+        open={!!confirmDeleteService}
+        onClose={() => setConfirmDeleteService(null)}
+      >
+        <DialogTitle sx={{ textAlign: "center" }}>
+          Confirm Delete Service
+        </DialogTitle>
+        <DialogContent>
+          <Typography align="center">
+            Are you sure you want to delete this service?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", gap: 2, pb: 2 }}>
+          <Button
+            onClick={() => setConfirmDeleteService(null)}
+            variant="outlined"
+            sx={{ minWidth: 100 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteService}
+            color="error"
+            variant="contained"
+            sx={{
+              minWidth: 100,
+              boxShadow: "none",
+              "&:hover": { boxShadow: "none" },
+            }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={notification.open}
-        autoHideDuration={6000}
+        autoHideDuration={5000}
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={handleCloseNotification} severity={notification.severity} variant="filled">
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ fontSize: "0.95rem" }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>

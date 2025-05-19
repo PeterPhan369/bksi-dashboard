@@ -2,20 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { addService } from '../api/apiServiceManager';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  IconButton,
-  Grid,
-  Typography,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
-  Box,
-  Tooltip
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  TextField, Button, IconButton, Grid, Typography, Checkbox,
+  FormControlLabel, FormGroup, Box, Tooltip
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,25 +15,7 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
   const [serviceName, setServiceName] = useState('');
   const [endPoint, setEndPoint] = useState('');
   const [instances, setInstances] = useState([{ host: '', port: '' }]);
-  const [selectedMetrics, setSelectedMetrics] = useState({
-    ai_request_total: false,
-    ai_request_latency_seconds: false,
-    model_inferences_total: false,
-    model_inference_errors_total: false,
-    model_response_time_seconds: false,
-    model_batch_size: false,
-    model_input_data_size_bytes: false,
-    model_output_data_size_bytes: false,
-    model_input_tokens_total: false,
-    model_output_tokens_total: false,
-    ai_model_accuracy: false,
-    ai_model_loss: false,
-    ai_memory_usage_bytes: false,
-    ai_cpu_usage_percent: false,
-    ai_gpu_memory_usage_bytes: false,
-    ai_gpu_utilization_percent: false
-  });
-
+  const [selectedMetrics, setSelectedMetrics] = useState({});
   const [nameError, setNameError] = useState('');
   const [instanceErrors, setInstanceErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,7 +25,7 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
   }, [instances.length]);
 
   const handleAddInstance = () => {
-    setInstances([...instances, { host: '127.0.0.1', port: '' }]);
+    setInstances([...instances, { host: '', port: '' }]);
   };
 
   const handleRemoveInstance = (index) => {
@@ -72,27 +43,33 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
   };
 
   const handleMetricChange = (metric) => {
-    setSelectedMetrics({ ...selectedMetrics, [metric]: !selectedMetrics[metric] });
+    setSelectedMetrics(prev => ({ ...prev, [metric]: !prev[metric] }));
   };
 
   const validateForm = () => {
     let valid = true;
+
     if (!serviceName.trim()) {
       setNameError('Service name is required');
       valid = false;
-    } else setNameError('');
+    } else {
+      setNameError('');
+    }
 
     const errors = instances.map(inst => {
       const err = { host: '', port: '' };
       if (!inst.host) {
-        err.host = 'Host required'; valid = false;
+        err.host = 'Host required';
+        valid = false;
       }
-      if (!inst.port || !/^[0-9]+$/.test(inst.port) || +inst.port < 1 || +inst.port > 65535) {
-        err.port = 'Port must be 1-65535'; valid = false;
+      if (!inst.port || !/^\d+$/.test(inst.port) || +inst.port < 1 || +inst.port > 65535) {
+        err.port = 'Port must be 1–65535';
+        valid = false;
       }
       return err;
     });
     setInstanceErrors(errors);
+
     return valid;
   };
 
@@ -100,7 +77,7 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
     setServiceName('');
     setEndPoint('');
     setInstances([{ host: '', port: '' }]);
-    setSelectedMetrics(Object.fromEntries(Object.keys(selectedMetrics).map(k => [k, false])));
+    setSelectedMetrics({});
     setNameError('');
     setInstanceErrors([]);
   };
@@ -112,6 +89,7 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
+
     setIsSubmitting(true);
     try {
       const serviceData = {
@@ -120,16 +98,17 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
         hosts: instances.map(i => i.host),
         ports: instances.map(i => i.port),
         replicas: instances.length,
-        metrics: getSelectedMetricsArray()
+        metrics: getSelectedMetricsArray(),
       };
+
       const res = await addService(serviceData);
-      if (res.status === 'success') {
-        onServiceAdded();
+      if (res?.status === 'success') {
+        await onServiceAdded(); // ensure reload before closing
         handleReset();
         onClose();
       }
-    } catch (e) {
-      console.error('Error posting service:', e);
+    } catch (err) {
+      console.error('Error posting service:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,7 +130,7 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
     ai_memory_usage_bytes: 'AI Memory Usage (B)',
     ai_cpu_usage_percent: 'AI CPU Usage (%)',
     ai_gpu_memory_usage_bytes: 'AI GPU Memory Usage (B)',
-    ai_gpu_utilization_percent: 'AI GPU Utilization (%)'
+    ai_gpu_utilization_percent: 'AI GPU Utilization (%)',
   };
 
   return (
@@ -159,16 +138,19 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
       <DialogTitle>
         <Box display="flex" alignItems="center">
           <AddIcon />
-          <Typography variant="h6">Add New AI Service</Typography>
-          <IconButton onClick={onClose} sx={{ ml: 'auto' }}><CloseIcon /></IconButton>
+          <Typography variant="h6" ml={1}>Add New AI Service</Typography>
+          <IconButton onClick={onClose} sx={{ ml: 'auto' }}>
+            <CloseIcon />
+          </IconButton>
         </Box>
       </DialogTitle>
+
       <DialogContent>
         <TextField
           label="Service Name"
           fullWidth
           value={serviceName}
-          onChange={e => { setServiceName(e.target.value); setNameError(''); }}
+          onChange={(e) => { setServiceName(e.target.value); setNameError(''); }}
           error={!!nameError}
           helperText={nameError}
           required
@@ -178,20 +160,20 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
           label="Service Endpoint"
           fullWidth
           value={endPoint}
-          onChange={e => setEndPoint(e.target.value)}
+          onChange={(e) => setEndPoint(e.target.value)}
           required
           margin="normal"
-          placeholder="e.g. /api/v1/my-service"
+          placeholder="/api/v1/my-service"
         />
 
         {instances.map((instance, idx) => (
-          <Grid container spacing={2} alignItems="center" key={idx}>
+          <Grid container spacing={2} alignItems="center" key={idx} mt={1}>
             <Grid item xs={5}>
               <TextField
-                label={`Host #${idx+1}`}
+                label={`Host #${idx + 1}`}
                 fullWidth
                 value={instance.host}
-                onChange={e => handleInstanceChange(idx, 'host', e.target.value)}
+                onChange={(e) => handleInstanceChange(idx, 'host', e.target.value)}
                 error={!!instanceErrors[idx]?.host}
                 helperText={instanceErrors[idx]?.host}
                 required
@@ -199,24 +181,29 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
             </Grid>
             <Grid item xs={5}>
               <TextField
-                label={`Port #${idx+1}`}
+                label={`Port #${idx + 1}`}
                 fullWidth
                 value={instance.port}
-                onChange={e => handleInstanceChange(idx, 'port', e.target.value)}
+                onChange={(e) => handleInstanceChange(idx, 'port', e.target.value)}
                 error={!!instanceErrors[idx]?.port}
                 helperText={instanceErrors[idx]?.port}
                 required
               />
             </Grid>
             <Grid item xs={2}>
-              <IconButton onClick={() => handleRemoveInstance(idx)} disabled={instances.length<=1} color="error">
+              <IconButton
+                onClick={() => handleRemoveInstance(idx)}
+                disabled={instances.length <= 1}
+                color="error"
+              >
                 <DeleteIcon />
               </IconButton>
             </Grid>
           </Grid>
         ))}
+
         <Button startIcon={<AddIcon />} onClick={handleAddInstance} sx={{ mt: 2 }}>
-          ADD INSTANCE
+          Add Instance
         </Button>
 
         <Box mt={4}>
@@ -232,9 +219,9 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
                 <Grid item xs={4} key={key}>
                   <FormControlLabel
                     control={
-                    <Checkbox 
-                      checked={selectedMetrics[key]} 
-                      onChange={() => handleMetricChange(key)}
+                      <Checkbox
+                        checked={!!selectedMetrics[key]}
+                        onChange={() => handleMetricChange(key)}
                       />
                     }
                     label={label}
@@ -245,17 +232,23 @@ const AddServiceDialog = ({ open, onClose, onServiceAdded }) => {
           </FormGroup>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleReset}>RESET</Button>
-        <Button onClick={onClose} color="inherit">CANCEL</Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={isSubmitting}
-          startIcon={<AddIcon />}
-        >
-          ADD SERVICE
-        </Button>
+
+      <DialogActions sx={{ justifyContent: "space-between", p: 2 }}>
+        <Button onClick={handleReset}>Reset</Button>
+        <Box>
+          <Button onClick={onClose} color="inherit" sx={{ mr: 1 }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            startIcon={<AddIcon />}
+            type="button"
+            disabled={isSubmitting}
+          >
+            Add Service
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );
