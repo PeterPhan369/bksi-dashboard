@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProSidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
 import { Link } from "react-router-dom";
@@ -42,6 +42,15 @@ const Sidebar = () => {
   const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+  const [adminName, setAdminName] = useState('Admin');
+
+  useEffect(() => {
+  const storedUser = localStorage.getItem('user');
+  if (storedUser) {
+    const parsedUser = JSON.parse(storedUser);
+    setAdminName(parsedUser?.username || 'Admin');
+  }
+}, []);
 
   return (
     <Box
@@ -94,14 +103,13 @@ const Sidebar = () => {
           {/* USER PROFILE AREA */}
           {!isCollapsed && (
             <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
+              <Box display="flex" justifyContent="center">
                 <img
-                  alt="profile-user"
-                  width="100px"
-                  height="100px"
-                  // Make sure the path to user.png is correct relative to your public folder or source structure
-                  src={`/assets/user.png`} // Assuming assets is in public folder, adjust if needed
-                  style={{ cursor: "pointer", borderRadius: "50%" }}
+                  alt="bk_logo"
+                  width="200px"
+                  height="150px"
+                  src={`/assets/LogoBK.png`} // assets is in public folder
+                  style={{ cursor: "pointer", borderRadius: "100%" }}
                 />
               </Box>
               <Box textAlign="center">
@@ -111,7 +119,7 @@ const Sidebar = () => {
                   fontWeight="bold"
                   sx={{ m: "10px 0 0 0" }}
                 >
-                  Dao Phan
+                  {adminName}
                 </Typography>
                 <Typography variant="h5" color={colors.greenAccent[500]}>
                   BKSI Admin
@@ -166,14 +174,6 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
-            <Item
-              title="Usage & Rejection"
-              to="/usage-rejection"
-              icon={<TimelineOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-
             {/* --- NEW TOOLS SECTION --- */}
             <Typography
               variant="h6"

@@ -49,10 +49,6 @@ const Topbar = ({ setIsSidebar }) => {
         backgroundColor={colors.primary[400]}
         borderRadius="3px"
       >
-        <InputBase sx={{ ml: 2, flex: 1 }} placeholder="Search" />
-        <IconButton type="button" sx={{ p: 1 }}>
-          <SearchIcon />
-        </IconButton>
       </Box>
 
       {/* ICONS */}
@@ -63,12 +59,6 @@ const Topbar = ({ setIsSidebar }) => {
           ) : (
             <LightModeOutlinedIcon />
           )}
-        </IconButton>
-        <IconButton>
-          <NotificationsOutlinedIcon />
-        </IconButton>
-        <IconButton>
-          <SettingsOutlinedIcon />
         </IconButton>
 
         {/* --- User Icon Button --- */}
@@ -88,16 +78,16 @@ const Topbar = ({ setIsSidebar }) => {
           id="profile-menu"
           anchorEl={anchorEl}
           anchorOrigin={{
-            vertical: 'top',
+            vertical: 'bottom',
             horizontal: 'right',
           }}
-          keepMounted
           transformOrigin={{
             vertical: 'top',
             horizontal: 'right',
           }}
+          keepMounted
           open={isMenuOpen}
-          onClose={handleMenuClose} // Close menu when clicking away
+          onClose={handleMenuClose}
         >
           <MenuItem onClick={handleLogout}>Logout</MenuItem>
           {/* You could add other items here like "Profile", "Settings" etc. */}

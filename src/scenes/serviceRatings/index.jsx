@@ -1,27 +1,29 @@
-// src/scenes/serviceRatings/index.jsx
-import React from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
-import { tokens } from '../../theme';
-import Header from '../../components/Header';
+// src/scenes/ServiceRatingsScene.jsx
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, CircularProgress } from '@mui/material';
+import apiService from '../../api/apiServiceManager';
 import AIServiceRatingChart from '../../components/AIServiceRatingChart';
+import Header from "../../components/Header";
 
 const ServiceRatings = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  
+  const [serviceNames, setServiceNames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiService.getServices()
+      .then(data => setServiceNames(data.map(s => s.Sname)))
+      .catch(() => setError('Failed to load services'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Box sx={{ display:'flex', justifyContent:'center', mt:4 }}><CircularProgress/></Box>;
+  if (error) return <Typography color="error">{error}</Typography>;
+
   return (
-    <Box m="20px">
-      <Header title="SERVICE RATINGS" subtitle="AI Services Approval Ratings" />
-      
-      <Box
-        height="75vh"
-        border={`1px solid ${colors.grey[100]}`}
-        borderRadius="4px"
-        p="15px"
-        backgroundColor={colors.primary[400]}
-      >
-        <AIServiceRatingChart />
-      </Box>
+    <Box sx={{ p:4 }}>
+      <Header title="Service Ratings" subtitle = "Overall Service Ratings"/>
+      <AIServiceRatingChart serviceNames={serviceNames} />
     </Box>
   );
 };

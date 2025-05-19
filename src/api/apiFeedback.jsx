@@ -1,112 +1,34 @@
+// src/api/apiFeedback.js
 import axios from 'axios';
 
 const API_BASE_URL = 'api/route/report';
 
-/**
- * Fetch rating distribution for a single service.
- * Hits: GET /metrics/:service_name?days=…
- * Returns { _id, name, thumbUp, neutral, thumbDown }
- */
-export const fetchServiceRatings = async (serviceName, days) => {
-  try {
-    const params = {};
-    if (typeof days === 'number') params.days = days;
-
-    const { data: metrics } = await axios.get(
-      `${API_BASE_URL}/metrics/${encodeURIComponent(serviceName)}`,
-      { params }
-    );
-
-    const { thumbs_up_total = 0, neutral_total = 0, thumbs_down_total = 0 } = metrics;
-    const total = thumbs_up_total + neutral_total + thumbs_down_total;
-
-    return {
-      _id: serviceName,
-      name: serviceName,
-      thumbUp: total > 0 ? (thumbs_up_total / total) * 100 : 0,
-      neutral: total > 0 ? (neutral_total / total) * 100 : 0,
-      thumbDown: total > 0 ? (thumbs_down_total / total) * 100 : 0,
-    };
-  } catch (error) {
-    console.error(`Error fetching ratings for ${serviceName}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Fetch rating distributions for *multiple* services in parallel.
- */
-export const fetchAllServiceRatings = async (serviceNames, days) => {
-  const calls = serviceNames.map(name => fetchServiceRatings(name, days));
-  return Promise.all(calls);
-};
-
-/**
- * Fetch usage/rejection metrics for a single service.
- * Hits: GET /metrics/:service_name?days=…
- * Returns { _id, name, usageRate }
- */
-export const fetchUsages = async (serviceName, days) => {
-  try {
-    const params = {};
-    if (typeof days === 'number') params.days = days;
-
-    const { data: metrics } = await axios.get(
-      `${API_BASE_URL}/metrics/${encodeURIComponent(serviceName)}`,
-      { params }
-    );
-
-    const usageTotal = metrics.usage_total || 0;
-    const rejectionTotal = metrics.rejection_total || 0;
-    const total = usageTotal + rejectionTotal;
-
-    return {
-      _id: serviceName,
-      name: serviceName,
-      usageRate: total > 0 ? (usageTotal / total) * 100 : 0,
-    };
-  } catch (error) {
-    console.error(`Error fetching usage metrics for ${serviceName}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Fetch the latest “suggestion” feedback items for a service.
- * Hits: GET /suggestions/:service_name?limit=…
- * Returns array of { text, timestamp }
- */
 export const fetchSuggestions = async (serviceName, limit) => {
-  try {
-    const params = {};
-    if (typeof limit === 'number') params.limit = limit;
-
-    const { data } = await axios.get(
-      `${API_BASE_URL}/suggestions/${encodeURIComponent(serviceName)}`,
-      { params }
-    );
-
-    return data.map(item => ({
-      text: item.value,
-      timestamp: item.timestamp,
-    }));
-  } catch (error) {
-    console.error(`Error fetching suggestions for ${serviceName}:`, error);
-    throw error;
-  }
+  const params = {};
+  if (limit !== undefined) params.limit = limit;
+  const resp = await axios.get(`${API_BASE_URL}/suggestions/${serviceName}`, { params });
+  return resp.data.map(item => ({ text: item.value, timestamp: item.timestamp }));
 };
 
-/**
- * Optional: Submit feedback to backend.
- * Hits: POST /feedback
- * Body: [{ service_name, feedback_type, value }]
- */
-export const submitFeedback = async (feedbackArray) => {
-  try {
-    const { data } = await axios.post(`${API_BASE_URL}/feedback`, feedbackArray);
-    return data;
-  } catch (error) {
-    console.error("Error submitting feedback:", error);
-    throw error;
-  }
+const fetchRawServiceMetrics = async (serviceName) => {
+  const resp = await axios.get(`${API_BASE_URL}/metrics/${serviceName}`);
+  return resp.data;
+};
+
+export const fetchAllServiceRatings = async (serviceNames) => {
+  if (!serviceNames || serviceNames.length === 0) return [];
+  const promises = serviceNames.map(name => fetchRawServiceMetrics(name));
+  const rawArr = await Promise.all(promises);
+  return rawArr.map(metrics => {
+    const up = metrics.thumbs_up_total || 0;
+    const neu = metrics.neutral_total || 0;
+    const down = metrics.thumbs_down_total || 0;
+    const total = up + neu + down;
+    return {
+      name: metrics.service_name || metrics._id || 'Unknown',
+      thumbUp: total > 0 ? (up / total) * 100 : 0,
+      neutral: total > 0 ? (neu / total) * 100 : 0,
+      thumbDown: total > 0 ? (down / total) * 100 : 0,
+    };
+  });
 };

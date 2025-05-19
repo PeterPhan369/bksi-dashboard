@@ -23,7 +23,7 @@ export const login = async (credentials) => {
 
     // Fetch API key (cookies auto‑sent)
     try {
-      const { data } = await axios.get(`http://127.0.0.1:8210/key`);
+      const { data } = await axios.get(`/api/key`);
       if (data.apiKey) {
         localStorage.setItem("apiKey", data.apiKey);
       }
@@ -43,6 +43,7 @@ export const login = async (credentials) => {
 export const register = async (userData) => {
   const { data } = await axios.post(`/api/signup`, userData);
 
+  
   return data;
 };
 

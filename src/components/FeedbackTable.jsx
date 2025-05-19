@@ -1,40 +1,29 @@
 // src/components/FeedbackTable.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchSuggestions } from '../api/apiFeedback';
 
-const FeedbackTable = ({ serviceName, itemsPerPage = 10, currentPage }) => {
+const FeedbackTable = ({ serviceName, itemsPerPage = 10, currentPage = 1 }) => {
   const [allSuggestions, setAllSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadSuggestions = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchSuggestions(serviceName, 100); // Fetch max, paginate in UI
-        setAllSuggestions(data);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch suggestions');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (serviceName) loadSuggestions();
+    if (!serviceName) return;
+    setLoading(true);
+    fetchSuggestions(serviceName, 100)
+      .then(data => setAllSuggestions(data))
+      .catch(err => setError('Failed to fetch suggestions'))
+      .finally(() => setLoading(false));
   }, [serviceName]);
 
-  const paginated = allSuggestions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const start = (currentPage - 1) * itemsPerPage;
+  const paginated = allSuggestions.slice(start, start + itemsPerPage);
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold mb-4">
         Suggestions for: <span className="text-blue-600">{serviceName}</span>
       </h2>
-
       {loading ? (
         <p className="text-gray-500">Loading suggestions...</p>
       ) : error ? (
@@ -52,14 +41,10 @@ const FeedbackTable = ({ serviceName, itemsPerPage = 10, currentPage }) => {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 border text-center">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </td>
-                  <td className="px-4 py-2 border">
-                    {new Date(item.timestamp).toLocaleString()}
-                  </td>
+              {paginated.map((item, idx) => (
+                <tr key={start + idx} className="hover:bg-gray-50">
+                  <td className="px-4 py-2 border text-center">{start + idx + 1}</td>
+                  <td className="px-4 py-2 border">{new Date(item.timestamp).toLocaleString()}</td>
                   <td className="px-4 py-2 border">{item.text}</td>
                 </tr>
               ))}

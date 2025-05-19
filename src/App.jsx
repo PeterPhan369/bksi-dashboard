@@ -22,7 +22,6 @@ import Pie from "./scenes/pie";
 import FAQ from "./scenes/faq";
 import Geography from "./scenes/geography";
 import FeedbackScene from "./scenes/feedback"; // <<< 1. IMPORT the new Feedback scene
-import UsageRejectionChart from './components/UsageRejectionChart';
 
 // --- Import MUI and Theme ---
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -78,7 +77,6 @@ function App() {
                 <Route path="geography" element={<Geography />} />
                 <Route path="services" element={<ServiceManager />} />
                 <Route path="feedback" element={<FeedbackScene />} /> {/* <<< 2. ADD Route for Feedback */}
-                <Route path="usage-rejection" element={<UsageRejectionChart />} />
                 <Route path="api-key" element={<ApiKeyGeneratorPage />} />
 
                 {/* Default route: Navigate to dashboard if logged in and at '/' */}
