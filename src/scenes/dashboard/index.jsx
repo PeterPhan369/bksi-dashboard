@@ -1,3 +1,4 @@
+import { useEffect } from 'react';       // ✅ import useEffect
 import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
 import { mockDataTeam } from "../../data/mockData";
@@ -8,6 +9,11 @@ import PieChart from "../../components/PieChart";
 import ServiceManager from "../../components/ServiceManager";
 
 const Dashboard = () => {
+
+  useEffect(() => {
+    console.log("✅ Dashboard mounted");
+  }, []);
+  
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 

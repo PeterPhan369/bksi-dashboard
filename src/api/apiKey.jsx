@@ -1,20 +1,18 @@
 // src/api/apiKey.js
 
 /**
- * Fetches a new API key from the server.
- * @returns {Promise<string>} A promise that resolves with the generated API key string.
- * @throws {Error} Throws an error if the fetch fails or the response is invalid.
+ * Generates a new API key on the server.
+ * @returns {Promise<string>} Resolves to the plaintext API key.
  */
 export const generateApiKey = async () => {
-  const API_ENDPOINT = '/api/v1/generate-key';
+  const API_ENDPOINT = '/api/key';
 
   try {
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
+      credentials: 'include',            // ← include cookies
       headers: {
         'Content-Type': 'application/json',
-        // Include token here if needed in the future:
-        // 'Authorization': `Bearer ${authToken}`,
       },
     });
 
@@ -23,18 +21,57 @@ export const generateApiKey = async () => {
       try {
         const errorData = await response.json();
         errorMsg = errorData.message || errorData.error || errorMsg;
-      } catch (_) {}
+      } catch {}
       throw new Error(errorMsg);
     }
 
     const data = await response.json();
-    if (data && data.apiKey) {
-      return data.apiKey;
-    } else {
-      throw new Error('API response did not contain a valid API key.');
+    if (data && typeof data.token === 'string') {
+      return data.token;
     }
+    throw new Error('Server did not return a valid API key.');
   } catch (error) {
-    console.error('Error in generateApiKey service:', error);
-    throw new Error(error.message || 'Failed to generate API Key from server.');
+    console.error('generateApiKey error:', error);
+    throw new Error(error.message || 'Failed to generate API key.');
+  }
+};
+
+/**
+ * Fetches an existing API key from the server, if one exists.
+ * @returns {Promise<string|null>} Resolves to the plaintext API key, or null if none.
+ */
+export const fetchApiKey = async () => {
+  const API_ENDPOINT = '/api/key';
+
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: 'GET',
+      credentials: 'include',            // ← include cookies
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      // not logged in / no token
+      return null;
+    }
+    if (!response.ok) {
+      let errorMsg = `API Error: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMsg = errorData.message || errorData.error || errorMsg;
+      } catch {}
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    if (data && typeof data.token === 'string') {
+      return data.token;
+    }
+    return null;
+  } catch (error) {
+    console.error('fetchApiKey error:', error);
+    throw new Error(error.message || 'Failed to fetch existing API key.');
   }
 };

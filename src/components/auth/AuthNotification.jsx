@@ -1,43 +1,37 @@
-// src/components/auth/AuthNotification.jsx
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import './Auth.css';
+import React from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { Alert, Snackbar } from '@mui/material';
 
 const AuthNotification = () => {
-  const location = useLocation();
-  const [message, setMessage] = useState('');
-  const [visible, setVisible] = useState(false);
-  const [type, setType] = useState('success'); // 'success' or 'error'
+  const { notification, clearNotification } = useAuth();
+  const { show, message, type } = notification;
 
-  useEffect(() => {
-    // Check if location.state contains a message
-    if (location.state && location.state.message) {
-      setMessage(location.state.message);
-      setType(location.state.type || 'success');
-      setVisible(true);
-      
-      // Auto-hide after 5 seconds
-      const timer = setTimeout(() => {
-        setVisible(false);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
+  if (!show) return null;
+
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
     }
-  }, [location]);
-
-  if (!visible) return null;
+    clearNotification();
+  };
 
   return (
-    <div className={`notification ${type === 'error' ? 'error-message' : 'success-message'}`}>
-      {message}
-      <button 
-        className="close-btn" 
-        onClick={() => setVisible(false)}
-        aria-label="Close"
+    <Snackbar
+      open={show}
+      autoHideDuration={5000}
+      onClose={handleClose}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+    >
+      <Alert 
+        onClose={handleClose} 
+        severity={type} 
+        sx={{ width: '100%' }}
+        elevation={6}
+        variant="filled"
       >
-        &times;
-      </button>
-    </div>
+        {message}
+      </Alert>
+    </Snackbar>
   );
 };
 

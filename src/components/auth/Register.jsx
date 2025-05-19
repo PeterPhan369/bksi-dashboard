@@ -1,25 +1,29 @@
-// src/components/auth/Register.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import './Auth.css';
-// Import icons if you don't have them already
-import GoogleIcon from '../../assets/google-icon.png'; // Add these icons to your assets folder
-import AppleIcon from '../../assets/apple-icon.png';   // Add these icons to your assets folder
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Container,
+  InputAdornment,
+  IconButton
+} from '@mui/material';
+import { Visibility, VisibilityOff, Person, Lock, Badge } from '@mui/icons-material';
+import '../auth/Auth.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
+    Aname: '',  // Admin name as specified in the backend API
+    username: '',
+    password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [registerError, setRegisterError] = useState('');
-  
-  const { register } = useAuth();
   const navigate = useNavigate();
+  const { register, loading } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,8 +31,7 @@ const Register = () => {
       ...formData,
       [name]: value
     });
-    
-    // Clear error when user starts typing
+
     if (formErrors[name]) {
       setFormErrors({
         ...formErrors,
@@ -39,185 +42,142 @@ const Register = () => {
 
   const validateForm = () => {
     const errors = {};
-    
-    if (!formData.fullName.trim()) {
-      errors.fullName = 'Full name is required';
+
+    if (!formData.Aname.trim()) {
+      errors.Aname = 'Admin name is required';
     }
-    
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email is invalid';
+
+    if (!formData.username.trim()) {
+      errors.username = 'Username is required';
     }
-    
+
     if (!formData.password) {
       errors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
-    
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setSubmitting(true);
-    setRegisterError('');
-    
+
+    if (!validateForm()) {
+      return;
+    }
+
     try {
-      await register({
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password
-      });
-      
-      // After successful registration, redirect to login page
-      navigate('/login', { 
-        state: { message: 'Registration successful! Please login with your new credentials.' }
-      });
+      await register(formData);
+      navigate('/login');
     } catch (error) {
-      setRegisterError(error.message || 'Registration failed. Please try again.');
-    } finally {
-      setSubmitting(false);
+      console.error('Registration error:', error);
     }
   };
 
-  const handleGoogleRegister = () => {
-    // Implement Google register logic
-    console.log('Google register clicked');
-  };
-
-  const handleAppleRegister = () => {
-    // Implement Apple register logic
-    console.log('Apple register clicked');
-  };
-
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Create an Account</h2>
-        
-        <div className="social-login-buttons">
-          <button 
-            className="social-button google-button" 
-            onClick={handleGoogleRegister}
-          >
-            <img src={GoogleIcon} alt="Google" className="social-icon" />
-            <span>Google</span>
-          </button>
-          
-          <button 
-            className="social-button apple-button" 
-            onClick={handleAppleRegister}
-          >
-            <img src={AppleIcon} alt="Apple" className="social-icon" />
-            <span>Apple</span>
-          </button>
-        </div>
-
-        <div className="divider">
-          <span className="divider-text">or</span>
-        </div>
-        
-        {registerError && (
-          <div className="error-message">
-            {registerError}
-          </div>
-        )}
-        
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <div className="input-with-icon">
-              <i className="user-icon">👤</i>
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                className="form-input"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="Full Name"
-                disabled={submitting}
-              />
-            </div>
-            {formErrors.fullName && <span className="error-text">{formErrors.fullName}</span>}
-          </div>
-          
-          <div className="form-group">
-            <div className="input-with-icon">
-              <i className="email-icon">✉️</i>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className="form-input"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Email address"
-                disabled={submitting}
-              />
-            </div>
-            {formErrors.email && <span className="error-text">{formErrors.email}</span>}
-          </div>
-          
-          <div className="form-group">
-            <div className="input-with-icon">
-              <i className="password-icon">🔒</i>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                className="form-input"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Password"
-                disabled={submitting}
-              />
-            </div>
-            {formErrors.password && <span className="error-text">{formErrors.password}</span>}
-          </div>
-          
-          <div className="form-group">
-            <div className="input-with-icon">
-              <i className="password-icon">🔒</i>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                className="form-input"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm Password"
-                disabled={submitting}
-              />
-            </div>
-            {formErrors.confirmPassword && <span className="error-text">{formErrors.confirmPassword}</span>}
-          </div>
-          
-          <button 
-            type="submit" 
-            className="login-button"
-            disabled={submitting}
-          >
-            {submitting ? 'Creating account...' : 'Sign Up'}
-          </button>
-        </form>
-        
-        <div className="signup-prompt">
-          Already have an account? <Link to="/login" className="signup-link">Log in</Link>
-        </div>
-      </div>
-    </div>
+    <Container component="main" maxWidth="xs" className="auth-container">
+      <Paper elevation={3} className="auth-paper">
+        <Box className="auth-box">
+          <Typography component="h1" variant="h4" className="auth-title">
+            Create Account
+          </Typography>
+          <form onSubmit={handleSubmit} className="auth-form">
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="Aname"
+              label="Admin Name"
+              name="Aname"
+              autoComplete="name"
+              autoFocus
+              value={formData.Aname}
+              onChange={handleChange}
+              error={!!formErrors.Aname}
+              helperText={formErrors.Aname}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Badge />
+                  </InputAdornment>
+                ),
+              }}
+              variant="outlined"
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="username"
+              label="Username"
+              name="username"
+              autoComplete="username"
+              value={formData.username}
+              onChange={handleChange}
+              error={!!formErrors.username}
+              helperText={formErrors.username}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person />
+                  </InputAdornment>
+                ),
+              }}
+              variant="outlined"
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={handleChange}
+              error={!!formErrors.password}
+              helperText={formErrors.password}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              variant="outlined"
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              className="auth-submit"
+              disabled={loading}
+            >
+              {loading ? 'Registering...' : 'Register'}
+            </Button>
+            <Box className="auth-links">
+              <Link to="/login" className="auth-link">
+                {"Already have an account? Sign In"}
+              </Link>
+            </Box>
+          </form>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 

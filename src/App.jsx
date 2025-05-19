@@ -47,14 +47,6 @@ const AppLayout = () => {
 function App() {
   const [theme, colorMode] = useMode();
 
-  // NOTE: The useEffect logic for checking auth and redirecting via window.location.href
-  // might conflict with react-router's protected routes and AuthProvider initialization.
-  // It's generally recommended to handle this within AuthProvider and ProtectedRoute.
-  // Removing the initializing state for now as ProtectedRoute should handle this.
-  // const [initializing, setInitializing] = useState(true);
-  // useEffect(() => { ... }, []);
-  // if (initializing) { return <div>Loading...</div>; }
-
 
   return (
     <ColorModeContext.Provider value={colorMode}>

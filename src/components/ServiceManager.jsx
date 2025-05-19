@@ -15,6 +15,7 @@ import {
   CircularProgress
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import IconButton from "@mui/material/IconButton";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PolicyIcon from "@mui/icons-material/Policy";
 import StorageIcon from "@mui/icons-material/Storage";
@@ -27,22 +28,25 @@ const ServiceManager = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: "", severity: "success" });
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
   useEffect(() => {
-    async function fetchServices() {
+    (async () => {
+      setLoading(true);
       try {
         const data = await apiService.getServices();
         setServices(data);
-      } catch (err) {
-        console.error("Could not load services", err);
+      } catch {
         setServices([]);
+      } finally {
+        setLoading(false);
       }
-    }
-    fetchServices();
+    })();
   }, []);
-
-
 
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);
@@ -51,7 +55,10 @@ const ServiceManager = () => {
     setLoading(true);
     try {
       await apiService.addService(serviceData);
-      setServices(prev => [...prev, { ...serviceData, Sname: serviceData.name, status: "active" }]);
+      setServices(prev => [
+        ...prev,
+        { ...serviceData, Sname: serviceData.name, status: "active" }
+      ]);
       setNotification({ open: true, message: "Service added successfully", severity: "success" });
     } catch (err) {
       setNotification({ open: true, message: err.message, severity: "error" });
@@ -61,8 +68,7 @@ const ServiceManager = () => {
     }
   };
 
-  const handleDeleteService = async (serviceName, event) => {
-    event.stopPropagation();
+  const handleDeleteService = async (serviceName) => {
     if (!window.confirm("Are you sure you want to delete this service?")) return;
     try {
       await apiService.deleteService(serviceName);
@@ -73,72 +79,84 @@ const ServiceManager = () => {
     }
   };
 
-  const handleCloseNotification = () => setNotification({ ...notification, open: false });
+  const handleCloseNotification = () =>
+    setNotification(n => ({ ...n, open: false }));
 
-  const getFrameworkColor = (framework) => {
-    const colors = {
-      tensorflow: "primary", pytorch: "secondary", keras: "success",
-      onnx: "info", scikit: "warning", huggingface: "error", custom: "default"
-    };
-    return colors[framework] || "default";
-  };
+  const getFrameworkColor = (framework) => ({
+    tensorflow: "primary", pytorch: "secondary", keras: "success",
+    onnx: "info", scikit: "warning", huggingface: "error", custom: "default"
+  }[framework] || "default");
 
-  const getTypeIcon = (type) => type === "nlp" ? <PolicyIcon fontSize="small" /> : <StorageIcon fontSize="small" />;
+  const getTypeIcon = (type) =>
+    type === "nlp" ? <PolicyIcon fontSize="small" /> : <StorageIcon fontSize="small" />;
 
-  const getStatusColor = (status) => {
-    const colors = {
-      active: "success", inactive: "default", error: "error", maintenance: "warning"
-    };
-    return colors[status] || "default";
-  };
+  const getStatusColor = (status) => ({
+    active: "success", inactive: "default", error: "error", maintenance: "warning"
+  }[status] || "default");
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
         <Typography variant="h5">AI Service Manager</Typography>
-        <Button variant="contained" color="primary" startIcon={<AddCircleIcon />} onClick={handleOpenDialog}>
+        <Button startIcon={<AddCircleIcon />} onClick={handleOpenDialog}>
           Add Service
         </Button>
       </Box>
 
-      {loading && <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}><CircularProgress /></Box>}
+      {loading && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
       {!loading && services.length === 0 && (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          No services found. Click "Add Service" to create one.
-        </Alert>
+        <Alert severity="info">No services found. Click "Add Service".</Alert>
       )}
 
       {!loading && services.length > 0 && (
-        <Paper elevation={0} variant="outlined" sx={{ p: 0, mb: 4 }}>
-          {services.map((service, index) => (
+        <Paper variant="outlined" sx={{ p: 0, mb: 4 }}>
+          {services.map((service, idx) => (
             <React.Fragment key={service.Sname}>
-              {index > 0 && <Divider />}
-              <Accordion disableGutters elevation={0}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", width: '100%' }}>
-                    <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                      {service.Sname}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Tooltip title={`Status: ${service.status}`}>
-                        <Chip label={service.status} size="small" color={getStatusColor(service.status)} sx={{ mr: 1 }} />
-                      </Tooltip>
-                      <Tooltip title={`Framework: ${service.framework}`}>
-                        <Chip label={service.framework} size="small" color={getFrameworkColor(service.framework)} sx={{ mr: 1 }} />
-                      </Tooltip>
-                      <Tooltip title={`Type: ${service.type}`}>
-                        <Chip icon={getTypeIcon(service.type)} label={service.type} size="small" variant="outlined" sx={{ mr: 2 }} />
-                      </Tooltip>
-                      <Tooltip title="Delete Service">
-                        <Button size="small" color="error" onClick={(e) => handleDeleteService(service.Sname, e)}>
-                          <DeleteIcon fontSize="small" />
-                        </Button>
-                      </Tooltip>
-                    </Box>
+              {idx > 0 && <Divider />}
+              <Accordion disableGutters>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6">{service.Sname}</Typography>
+                    <Chip
+                      label={service.status}
+                      size="small"
+                      color={getStatusColor(service.status)}
+                      sx={{ ml: 1 }}
+                    />
+                    <Chip
+                      label={service.framework}
+                      size="small"
+                      color={getFrameworkColor(service.framework)}
+                      sx={{ ml: 1 }}
+                    />
+                    <Chip
+                      icon={getTypeIcon(service.type)}
+                      label={service.type}
+                      size="small"
+                      variant="outlined"
+                      sx={{ ml: 1 }}
+                    />
                   </Box>
                 </AccordionSummary>
+
                 <AccordionDetails>
+                  {/* Moved delete button into details to avoid button-in-button */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+                    <Tooltip title="Delete Service">
+                      <IconButton
+                        color="error"
+                        size="small"
+                        onClick={() => handleDeleteService(service.Sname)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <MetricsDisplay metrics={service.metrics} />
                 </AccordionDetails>
               </Accordion>
@@ -147,7 +165,11 @@ const ServiceManager = () => {
         </Paper>
       )}
 
-      <AddServiceDialog open={openDialog} onClose={handleCloseDialog} onSave={handleSaveService} />
+      <AddServiceDialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        onSave={handleSaveService}
+      />
 
       <Snackbar
         open={notification.open}
@@ -155,7 +177,7 @@ const ServiceManager = () => {
         onClose={handleCloseNotification}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseNotification} severity={notification.severity} variant="filled" sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseNotification} severity={notification.severity} variant="filled">
           {notification.message}
         </Alert>
       </Snackbar>

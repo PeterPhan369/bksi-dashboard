@@ -1,6 +1,4 @@
-// src/components/ApiKeyGeneratorPage.jsx
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -17,7 +15,7 @@ import {
 import FileCopyIcon from '@mui/icons-material/FileCopy';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
 
-import { generateApiKey } from '../api/apiKey';
+import { generateApiKey, fetchApiKey } from '../api/apiKey';
 
 const ApiKeyGeneratorPage = () => {
   const [apiKey, setApiKey] = useState('');
@@ -27,6 +25,22 @@ const ApiKeyGeneratorPage = () => {
     message: '',
     severity: 'info',
   });
+
+  // Fetch existing key on mount
+  useEffect(() => {
+    const loadExisting = async () => {
+      setLoading(true);
+      try {
+        const existing = await fetchApiKey();
+        if (existing) setApiKey(existing);
+      } catch (e) {
+        console.warn('No existing API key:', e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadExisting();
+  }, []);
 
   const handleGenerateKey = async () => {
     setLoading(true);
@@ -77,7 +91,9 @@ const ApiKeyGeneratorPage = () => {
           API Key Generator
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Generate a unique API key from the server to authenticate your requests.
+          {apiKey
+            ? 'This is your current API key. You can copy it or generate a new one.'
+            : 'Generate a unique API key from the server to authenticate your requests.'}
         </Typography>
 
         <Button
@@ -88,7 +104,9 @@ const ApiKeyGeneratorPage = () => {
           size="large"
           sx={{ mb: 3 }}
         >
-          {loading ? 'Generating...' : 'Generate New API Key'}
+          {loading
+            ? apiKey ? 'Refreshing...' : 'Generating...'
+            : apiKey ? 'Regenerate API Key' : 'Generate API Key'}
         </Button>
 
         {apiKey && !loading && (
@@ -105,6 +123,7 @@ const ApiKeyGeneratorPage = () => {
             <TextField
               fullWidth
               readOnly
+              disabled
               value={apiKey}
               variant="outlined"
               size="small"
@@ -128,7 +147,9 @@ const ApiKeyGeneratorPage = () => {
           </Paper>
         )}
 
-        {loading && !apiKey && <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', my: 2 }} />}
+        {loading && !apiKey && (
+          <CircularProgress size={24} sx={{ display: 'block', mx: 'auto', my: 2 }} />
+        )}
 
         <Snackbar
           open={notification.open}

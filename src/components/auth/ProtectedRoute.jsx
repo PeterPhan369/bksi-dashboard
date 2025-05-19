@@ -1,23 +1,23 @@
-// src/components/auth/ProtectedRoute.jsx
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext'; // Use the context
+import { useAuth } from '../../context/AuthContext';
+import { Box, CircularProgress } from '@mui/material';
 
 const ProtectedRoute = () => {
-  // Get authentication status and loading state from context
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
 
-  // Optional: Show loading state while context is initializing/validating token
-  if (isLoading) {
-    return <div>Loading authentication...</div>; // Or a spinner component
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  // Redirect if not authenticated according to the context state
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Render child routes if authenticated
   return <Outlet />;
 };
 

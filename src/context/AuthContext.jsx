@@ -1,84 +1,69 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { login, register, logout, getCurrentUser, isAuthenticated } from '../api/authApi';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import authApi from '../api/authApi';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [user, setUser] = useState(() => authApi.getCurrentUser());
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
+  const [notification, setNotification] = useState({
+    show: false,
+    message: '',
+    type: 'info',
+  });
+
+  // On mount, check if we already have a user
   useEffect(() => {
-    // Check for authentication on load
-    const token = localStorage.getItem('authToken');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      try {
-        const userData = JSON.parse(user);
-        setCurrentUser(userData);
-      } catch (error) {
-        // Clear invalid data
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        setCurrentUser(null);
-      }
-    } else {
-      setCurrentUser(null);
-    }
-    
+    const stored = authApi.getCurrentUser();
+    if (stored) setUser(stored);
     setLoading(false);
   }, []);
-  
-  const loginUser = async (credentials) => {
-    setError(null);
+
+  const login = async (credentials) => {
+    setLoading(true);
     try {
-      const data = await login(credentials);
-      setCurrentUser(data.user);
-      return data; // Make sure we're returning the data!
+      const { user } = await authApi.login(credentials);
+      setUser(user);
+      setNotification({ show: true, message: 'Login successful!', type: 'success' });
+      return true;
     } catch (err) {
-      setError(err.message || "Login failed");
-      throw err;
+      setNotification({ show: true, message: err.message || 'Login failed.', type: 'error' });
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
-  
-  const registerUser = async (userData) => {
-    setError(null);
-    try {
-      const data = await register(userData);
-      return data;
-    } catch (err) {
-      setError(err.message || "Registration failed");
-      throw err;
-    }
+
+  const logout = () => {
+    authApi.logout();
+    setUser(null);
+    setNotification({ show: true, message: 'Logged out.', type: 'info' });
   };
-  
-  const logoutUser = () => {
-    logout();
-    setCurrentUser(null);
+
+  const clearNotification = () => {
+    setNotification({ show: false, message: '', type: 'info' });
   };
-  
-  const value = {
-    currentUser,
-    loading,
-    error,
-    login: loginUser,
-    register: registerUser,
-    logout: logoutUser,
-    isAuthenticated: () => !!currentUser
-  };
-  
+
+  // Auth is purely: do we have a user?
+  const isAuthenticated = !!user;
+
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider
+      value={{
+        user,
+        token: user?.token || null,
+        login,
+        logout,
+        isAuthenticated,
+        loading,
+        notification,
+        clearNotification,
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
-
-export default AuthContext;
+export const useAuth = () => useContext(AuthContext);

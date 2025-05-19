@@ -1,182 +1,114 @@
-// src/components/auth/Login.jsx
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import './Auth.css';
-// Import icons if you don't have them already
-import GoogleIcon from '../../assets/google-icon.png'; // Add these icons to your assets folder
-import AppleIcon from '../../assets/apple-icon.png';   // Add these icons to your assets folder
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  Container,
+  InputAdornment,
+  IconButton
+} from '@mui/material';
+import { Visibility, VisibilityOff, Person, Lock } from '@mui/icons-material';
+import '../auth/Auth.css';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [formErrors, setFormErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  
-  const { login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+
   const navigate = useNavigate();
+  // Only grab login, isAuthenticated, and loading:
+  const { login, isAuthenticated, loading } = useAuth();
+
+  // Redirect once isAuthenticated flips to true
+  useEffect(() => {
+    console.log('[useEffect] isAuthenticated:', isAuthenticated);
+    if (isAuthenticated) {
+      console.log('Redirecting after login');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors({
-        ...formErrors,
-        [name]: ''
-      });
-    }
+    setFormData(f => ({ ...f, [name]: value }));
+    if (formErrors[name]) setFormErrors(f => ({ ...f, [name]: '' }));
   };
 
   const validateForm = () => {
     const errors = {};
-    
-    if (!formData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = 'Email is invalid';
-    }
-    
-    if (!formData.password) {
-      errors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
-    }
-    
+    if (!formData.username.trim()) errors.username = 'Username is required';
+    if (!formData.password) errors.password = 'Password is required';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-    
-    setSubmitting(true);
-    setLoginError('');
-    
-    try {
-      // This line is key - we need to properly get and store the response
-      const response = await login(formData);
-      
-      // Make sure we're storing the token and user data from the response
-      if (response && response.token) {
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        navigate('/dashboard'); // Navigate to dashboard after successful login
-      } else {
-        throw new Error('Invalid login response - no token received');
-      }
-    } catch (error) {
-      setLoginError(error.message || 'Failed to login. Please check your credentials.');
-    } finally {
-      setSubmitting(false);
+    const success = await login(formData);
+    if (success) {
+      console.log('Navigating to dashboard...');
+      // No manual navigate here—useEffect will handle it
     }
   };
 
-  const handleGoogleLogin = () => {
-    // Implement Google login logic
-    console.log('Google login clicked');
-  };
-
-  const handleAppleLogin = () => {
-    // Implement Apple login logic
-    console.log('Apple login clicked');
-  };
-
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Log in with</h2>
-        
-        <div className="social-login-buttons">
-          <button 
-            className="social-button google-button" 
-            onClick={handleGoogleLogin}
-          >
-            <img src={GoogleIcon} alt="Google" className="social-icon" />
-            <span>Google</span>
-          </button>
-          
-          <button 
-            className="social-button apple-button" 
-            onClick={handleAppleLogin}
-          >
-            <img src={AppleIcon} alt="Apple" className="social-icon" />
-            <span>Apple</span>
-          </button>
-        </div>
-
-        <div className="divider">
-          <span className="divider-text">or</span>
-        </div>
-        
-        {loginError && (
-          <div className="error-message">
-            {loginError}
-          </div>
-        )}
-        
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <div className="input-with-icon">
-              <i className="email-icon">✉️</i>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className="form-input"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Email address"
-                disabled={submitting}
-              />
-            </div>
-            {formErrors.email && <span className="error-text">{formErrors.email}</span>}
-          </div>
-          
-          <div className="form-group">
-            <div className="input-with-icon">
-              <i className="password-icon">🔒</i>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                className="form-input"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Password"
-                disabled={submitting}
-              />
-            </div>
-            {formErrors.password && <span className="error-text">{formErrors.password}</span>}
-          </div>
-          
-          <div className="forgot-password">
-            <Link to="/forgot-password">Forgot password?</Link>
-          </div>
-          
-          <button 
-            type="submit" 
-            className="login-button"
-            disabled={submitting}
-          >
-            {submitting ? 'Logging in...' : 'Log In'}
-          </button>
-        </form>
-        
-        <div className="signup-prompt">
-          Don't have an account? <Link to="/register" className="signup-link">Sign up</Link>
-        </div>
-      </div>
-    </div>
+    <Container component="main" maxWidth="xs" className="auth-container">
+      <Paper elevation={3} className="auth-paper">
+        <Box className="auth-box">
+          <Typography component="h1" variant="h4" className="auth-title">
+            Sign In
+          </Typography>
+          <form onSubmit={handleSubmit} className="auth-form">
+            <TextField
+              margin="normal" required fullWidth
+              id="username" label="Username" name="username"
+              autoComplete="username" autoFocus
+              value={formData.username} onChange={handleChange}
+              error={!!formErrors.username} helperText={formErrors.username}
+              InputProps={{
+                startAdornment: (<InputAdornment position="start"><Person/></InputAdornment>)
+              }}
+              variant="outlined"
+            />
+            <TextField
+              margin="normal" required fullWidth
+              name="password" label="Password"
+              type={showPassword ? 'text' : 'password'}
+              id="password" autoComplete="current-password"
+              value={formData.password} onChange={handleChange}
+              error={!!formErrors.password} helperText={formErrors.password}
+              InputProps={{
+                startAdornment: (<InputAdornment position="start"><Lock/></InputAdornment>),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(s => !s)} edge="end">
+                      {showPassword ? <VisibilityOff/> : <Visibility/>}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              variant="outlined"
+            />
+            <Button
+              type="submit" fullWidth variant="contained" color="primary"
+              className="auth-submit" disabled={loading}
+            >
+              {loading ? 'Signing In…' : 'Sign In'}
+            </Button>
+            <Box className="auth-links">
+              <Link to="/register" className="auth-link">
+                {"Don't have an account? Sign Up"}
+              </Link>
+            </Box>
+          </form>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 
