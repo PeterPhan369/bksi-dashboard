@@ -1,7 +1,7 @@
 // src/api/apiFeedback.js
 import axios from 'axios';
 
-const API_BASE_URL = 'api/route/report';
+const apiKey = import.meta.env.VITE_BKSI_API_KEY;
 
 export const fetchSuggestions = async (serviceName, limit) => {
   const params = {};
@@ -31,4 +31,23 @@ export const fetchAllServiceRatings = async (serviceNames) => {
       thumbDown: total > 0 ? (down / total) * 100 : 0,
     };
   });
+};
+
+export const getAllFeedbackMetrics = async () => {
+  try {
+    const { data } = await axios.get(`/api/route/report/feedbacks`, {
+      headers: {
+        "Content-Type": "application/json",
+        "bksi-api-key": apiKey,
+      },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching feedback metrics:", error.response?.data || error.message);
+    throw new Error("Failed to load service metrics.");
+  }
+};
+
+export default {
+  getAllFeedbackMetrics
 };

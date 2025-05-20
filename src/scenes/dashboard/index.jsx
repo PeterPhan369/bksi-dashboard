@@ -1,151 +1,155 @@
-import { useEffect, useRef, useState } from 'react';
-import { Box, Button, IconButton, Typography, useTheme, Pagination } from "@mui/material";
-import { tokens } from "../../theme";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import Header from "../../components/Header";
-import AIServiceRatingChart from "../../components/AIServiceRatingChart";
-import FeedbackTable from "../../components/FeedbackTable";
-import ServiceManager from "../../components/ServiceManager";
-import ApiKeyGeneratorPage from "../../components/ApiKeyGeneratorPage";
-import { mockDataTeam } from "../../data/mockData";
-import html2canvas from "html2canvas"; // <-- Import html2canvas
-
-// --- Fake feedback data for Recent Feedback table ---
-const fakeFeedbackData = [
-  { id: 1, serviceName: 'GPT-4', dateTime: '2025-05-12 09:15', suggestions: 'làm thế nào để nộp bài tập ?', userfeedback: 'Tốt' },
-  { id: 2, serviceName: 'GPT-3.5', dateTime: '2025-05-12 11:42', suggestions: 'bao lâu thì bài kiểm tra được trả ?', userfeedback: 'Tốt' },
-  { id: 3, serviceName: 'Bard', dateTime: '2025-05-13 08:03', suggestions: 'tôi cần tài liệu bổ sung về chủ đề hóa học hữu cơ .', userfeedback: 'Tốt' },
-  { id: 4, serviceName: 'Claude 2', dateTime: '2025-05-13 10:27', suggestions: 'lịch học thêm vào thứ bảy là gì ?', userfeedback: '-' },
-  { id: 5, serviceName: 'Llama 2', dateTime: '2025-05-13 14:53', suggestions: 'giờ phát biểu bài thuyết trình của tôi khi nào ?', userfeedback: 'Không Tốt' },
-  { id: 6, serviceName: 'Mistral', dateTime: '2025-05-14 09:00', suggestions: 'cách truy cập thư viện trực tuyến như thế nào ?', userfeedback: 'Không Tốt' },
-  { id: 7, serviceName: 'Gemini', dateTime: '2025-05-14 12:30', suggestions: 'làm sao để đăng ký câu lạc bộ bóng đá ?', userfeedback: '-' },
-  { id: 8, serviceName: 'PaLM 2', dateTime: '2025-05-14 15:45', suggestions: 'tôi quên mật khẩu tài khoản sinh viên .', userfeedback: 'Tốt' },
-  { id: 9, serviceName: 'Cohere Command', dateTime: '2025-05-15 08:20', suggestions: 'điều kiện tham gia chương trình trao đổi sinh viên là gì ?', userfeedback: 'Không Tốt' },
-  { id: 10, serviceName: 'Jurassic-2', dateTime: '2025-05-15 11:10', suggestions: 'giáo án tuần sau có thay đổi không ?', userfeedback: 'Không Tốt' },
-  { id: 11, serviceName: 'OPT', dateTime: '2025-05-15 13:55', suggestions: 'tôi có thể xem lại điểm kiểm tra trực tuyến ở đâu ?', userfeedback: '-' },
-];
+import React, { useState, useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import AddServiceGatewayDial from "../../components/AddServiceGatewayDial";
+import apiGateway from "../../api/apiGateway";
+import APIServiceRow from "../../components/ApiServiceRow";
 
 const Dashboard = () => {
-  useEffect(() => {
-    console.log("✅ Dashboard mounted");
-  }, []);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: "", severity: "success" });
+  const [confirmDeleteService, setConfirmDeleteService] = useState(null);
 
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  const dashboardRef = useRef(); // for screenshot
-
-  const itemsPerPage = 5;
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalFeedbackPages = Math.ceil(fakeFeedbackData.length / itemsPerPage);
-
-  const handleDownloadScreenshot = async () => {
-    window.scrollTo(0, 0); // Scroll to top to ensure full content is visible
-    if (dashboardRef.current) {
-      const canvas = await html2canvas(dashboardRef.current, {
-        scrollY: -window.scrollY,
-        useCORS: true,
-      });
-      const link = document.createElement('a');
-      link.download = 'dashboard-report.png';
-      link.href = canvas.toDataURL();
-      link.click();
+  const loadServices = async () => {
+    setLoading(true);
+    try {
+      const rawData = await apiGateway.getAllGatewayServices();
+      const formattedData = rawData.map(service => ({
+        id: service.id,
+        name: service.Sname,
+        endPoint: service.endPoint,
+        instances: service.ServiceInstances
+      }));
+      setServices(formattedData);
+    } catch {
+      setServices([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleServicesChange = (updatedServices) => {
-    console.log("Updated services:", updatedServices);
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const handleAddInstance = async (id, host, port) => {
+    try {
+      await apiGateway.addGatewayInstance({ id, host, port });
+      loadServices();
+      setNotification({ open: true, message: "Instance added", severity: "success" });
+    } catch (err) {
+      setNotification({ open: true, message: err.message, severity: "error" });
+    }
   };
 
-  const handleFeedbackPageChange = (event, value) => {
-    setCurrentPage(value);
+  const handleDeleteInstance = async (serviceName, instanceId) => {
+    try {
+      await apiGateway.deleteGatewayInstance(instanceId);
+      loadServices();
+      setNotification({ open: true, message: "Instance deleted", severity: "success" });
+    } catch (err) {
+      setNotification({ open: true, message: err.message, severity: "error" });
+    }
+  };
+
+  const handleDeleteService = async () => {
+    if (!confirmDeleteService) return;
+    try {
+      await apiGateway.deleteGatewayService(confirmDeleteService);
+      setNotification({ open: true, message: "Service deleted", severity: "success" });
+      loadServices();
+    } catch (err) {
+      setNotification({ open: true, message: err.message, severity: "error" });
+    } finally {
+      setConfirmDeleteService(null);
+    }
   };
 
   return (
-    <Box ref={dashboardRef} m="20px">
-      {/* HEADER */}
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Header title="DASHBOARD" subtitle="Welcome to BKSI-Dashboard" />
-        <Button
-          onClick={handleDownloadScreenshot}
-          sx={{
-            backgroundColor: colors.blueAccent[700],
-            color: colors.grey[100],
-            fontSize: "14px",
-            fontWeight: "bold",
-            padding: "10px 20px",
-          }}
-        >
-          <DownloadOutlinedIcon sx={{ mr: "10px" }} />
-          Download Reports
+    <Box sx={{ maxWidth: 1000, mx: "auto", p: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold">API Gateway Services</Typography>
+        <Button startIcon={<AddCircleIcon />} onClick={() => setOpenDialog(true)}>
+          Add Service
         </Button>
       </Box>
 
-      {/* DASHBOARD CONTENT */}
-      <Box
-        display="grid"
-        gridTemplateColumns="repeat(12, 1fr)"
-        gridAutoRows="min-content"
-        gap="20px"
-        mt="20px"
-      >
-        {/* Top Row */}
-        <Box gridColumn="span 6" backgroundColor={colors.primary[400]} p="20px">
-          <Typography variant="h5" fontWeight="600" color={colors.grey[100]}>
-            Manage Services
-          </Typography>
-          <Box mt="10px">
-            <ServiceManager
-              initialServices={mockDataTeam}
-              onServicesChange={handleServicesChange}
-              themeColors={colors}
-              compact
-            />
-          </Box>
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
+          <CircularProgress />
         </Box>
-
-        <Box gridColumn="span 6" backgroundColor={colors.primary[400]} p="20px">
-          <Typography variant="h5" fontWeight="600" color={colors.grey[100]}>
-            Recent Feedback
-          </Typography>
-          <Box mt="10px">
-            <FeedbackTable
-              feedbackData={fakeFeedbackData}
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-            />
-            {totalFeedbackPages > 1 && (
-              <Box display="flex" justifyContent="center" mt="20px">
-                <Pagination
-                  count={totalFeedbackPages}
-                  page={currentPage}
-                  onChange={handleFeedbackPageChange}
-                  color="primary"
+      ) : services.length === 0 ? (
+        <Alert severity="info">No services found. Click "Add Service" to begin.</Alert>
+      ) : (
+        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+          <Table>
+            <TableHead sx={{ backgroundColor: "#f0f0f0" }}>
+              <TableRow>
+                <TableCell />
+                <TableCell><strong>Service Name</strong></TableCell>
+                <TableCell><strong>Endpoint</strong></TableCell>
+                <TableCell align="right"><strong>Actions</strong></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {services.map(service => (
+                <APIServiceRow
+                  key={service.id}
+                  service={service}
+                  onDeleteService={setConfirmDeleteService}
+                  onDeleteInstance={handleDeleteInstance}
+                  onAddInstance={handleAddInstance}
                 />
-              </Box>
-            )}
-          </Box>
-        </Box>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-        {/* Second Row */}
-        <Box gridColumn="span 6" backgroundColor={colors.primary[400]} p="20px">
-          <Typography variant="h5" fontWeight="600" color={colors.grey[100]}>
-            Service Ratings
-          </Typography>
-          <Box mt="10px">
-            <AIServiceRatingChart isDashboard />
-          </Box>
-        </Box>
+      <AddServiceGatewayDial
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onServiceAdded={loadServices}
+      />
 
-        {/* Bottom Row */}
-        <Box gridColumn="span 12" backgroundColor={colors.primary[400]} p="20px">
-          <Typography variant="h5" fontWeight="600" color={colors.grey[100]}>
-            API Key Generator
-          </Typography>
-          <Box mt="10px">
-            <ApiKeyGeneratorPage />
-          </Box>
-        </Box>
-      </Box>
+      <Dialog open={!!confirmDeleteService} onClose={() => setConfirmDeleteService(null)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this service?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteService(null)}>Cancel</Button>
+          <Button onClick={handleDeleteService} color="error" variant="contained">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={() => setNotification(n => ({ ...n, open: false }))}
+      >
+        <Alert severity={notification.severity}>{notification.message}</Alert>
+      </Snackbar>
     </Box>
   );
 };

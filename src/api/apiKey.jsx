@@ -42,7 +42,8 @@ export const generateApiKey = async () => {
  * @returns {Promise<string|null>} Resolves to the plaintext API key, or null if none.
  */
 export const fetchApiKey = async () => {
-  const API_ENDPOINT = 'http://127.0.0.1:8210/key';
+  const userId = localStorage.getItem('userId');
+  const API_ENDPOINT = `api/keys/${userId}`;
 
   try {
     const response = await fetch(API_ENDPOINT, {

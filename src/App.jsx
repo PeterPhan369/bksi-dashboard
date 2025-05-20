@@ -27,6 +27,7 @@ import FeedbackScene from "./scenes/feedback"; // <<< 1. IMPORT the new Feedback
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import ApiKeyGeneratorPage from './components/ApiKeyGeneratorPage';
+import useAxiosPrivate from './api/private';
 
 // --- App Layout Component ---
 const AppLayout = () => {
@@ -45,7 +46,27 @@ const AppLayout = () => {
 // --- Main App Component ---
 function App() {
   const [theme, colorMode] = useMode();
+  const [sessionReady, setSessionReady] = useState(false);
+  const axiosPrivate = useAxiosPrivate();
+  useEffect(() => {
+    const refreshSession = async () => {
+      try {
+        await axiosPrivate.get("/refresh");
+        console.log("✅ Session refreshed");
+      } catch (err) {
+        console.warn("❌ Refresh failed:", err.message);
+        // Optionally redirect to login here
+      } finally {
+        setSessionReady(true); // Prevent rendering app until session is checked
+      }
+    };
 
+    refreshSession();
+  }, [axiosPrivate]);
+
+  // if (!sessionReady) {
+  //   return <div>Loading session...</div>;
+  // }
 
   return (
     <ColorModeContext.Provider value={colorMode}>

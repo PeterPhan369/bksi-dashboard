@@ -131,7 +131,7 @@ const Sidebar = () => {
           {/* MENU ITEMS */}
           <Box paddingLeft={isCollapsed ? undefined : "10%"}>
             <Item
-              title="Dashboard"
+              title="Gateway Management"
               to="/"
               icon={<HomeOutlinedIcon />}
               selected={selected}
@@ -143,17 +143,17 @@ const Sidebar = () => {
               color={colors.grey[300]}
               sx={{ m: "15px 0 5px 20px" }}
             >
-              Data
+              Monitoring
             </Typography>
             <Item
-              title="Manage Service"
+              title="Service Managment"
               to="/team" // Keeping original "/team" as requested
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
-            <Item
-              title="Feedback Monitor"
+            {/* <Item
+              title="Feedback Management"
               to="/feedback" // Link to the route defined in App.jsx
               icon={<FeedbackOutlinedIcon />} // Use the imported icon
               selected={selected}
@@ -166,7 +166,7 @@ const Sidebar = () => {
               sx={{ m: "15px 0 5px 20px" }}
             >
               Charts
-            </Typography>
+            </Typography> */}
             <Item
               title="Service Ratings"
               to="/service-ratings"

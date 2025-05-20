@@ -1,7 +1,7 @@
 // src/scenes/ServiceRatingsScene.jsx
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress } from '@mui/material';
-import apiService from '../../api/apiServiceManager';
+import apiService from '../../api/apiServices';
 import AIServiceRatingChart from '../../components/AIServiceRatingChart';
 import Header from "../../components/Header";
 
@@ -23,7 +23,7 @@ const ServiceRatings = () => {
   return (
     <Box sx={{ p:4 }}>
       <Header title="Service Ratings" subtitle = "Overall Service Ratings"/>
-      <AIServiceRatingChart serviceNames={serviceNames} />
+      <AIServiceRatingChart/>
     </Box>
   );
 };
